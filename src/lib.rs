@@ -157,7 +157,7 @@ impl Searcher {
             })
             .collect::<Vec<_>>();
 
-        thread_search_results.sort_by_key(|result| result.score);
+        thread_search_results.sort_by_key(|result| -(result.score as i32));
 
         thread_search_results
     }
