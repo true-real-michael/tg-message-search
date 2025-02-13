@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 pub struct ThreadDSU {
-    threads: HashMap<usize, Vec<usize>>,
+    threads: HashMap<usize, Vec<usize>>, // thread_id -> message_ids
     parents: HashMap<usize, usize>,
 }
 
@@ -42,16 +42,7 @@ impl ThreadDSU {
     }
 
     pub fn get_threads(&self) -> Vec<Vec<usize>> {
+        // each Vec<usize> is one thread
         self.threads.values().cloned().collect()
-    }
-
-    pub fn get_reverse_mapping(&self) -> HashMap<usize, usize> {
-        let mut mapping = HashMap::new();
-        for (thread_id, message_ids) in &self.threads {
-            for message_id in message_ids {
-                mapping.insert(*message_id, *thread_id);
-            }
-        }
-        mapping
     }
 }

@@ -1,11 +1,4 @@
 use std::collections::HashMap;
-use crate::utils;
-
-macro_rules! log {
-    ( $( $t:tt )* ) => {
-        web_sys::console::log_1(&format!( $( $t )* ).into());
-    }
-}
 
 const DICTIONARY_RAW: &str = include_str!("../data/lemmatization-ru.tsv");
 

@@ -6,6 +6,12 @@ use crate::lemmatizer::Lemmatizer;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
+macro_rules! log {
+    ( $( $t:tt )* ) => {
+        web_sys::console::log_1(&format!( $( $t )* ).into());
+    }
+}
+
 #[derive(Clone)]
 pub struct Message {
     pub text: String,
@@ -79,7 +85,8 @@ impl Searcher {
                 .get(3)
                 .and_then(|s| s.parse::<usize>().ok())
                 .filter(|&id| id != 0)
-                .map(|id| normalized_ids.get(&id).copied()).flatten();
+                .map(|id| normalized_ids.get(&id).copied())
+                .flatten();
             messages.push(Message { text, reply_to });
 
             thread_dsu.make_set(current_id);
@@ -95,23 +102,24 @@ impl Searcher {
 
         let threads = thread_dsu.get_threads();
         let lemmatizer = Lemmatizer::new();
-        let message_thread_map = thread_dsu.get_reverse_mapping();
 
         let mut thread_index = HashMap::new();
-        for (message_id, thread_id) in message_thread_map {
-            messages[message_id]
-                .text
-                .to_lowercase()
-                .replace(|c: char| !c.is_alphanumeric(), " ")
-                .split_whitespace()
-                .filter(|word| word.len() > 3)
-                .map(|word| lemmatizer.lemmatize(word))
-                .for_each(|word| {
-                    thread_index
-                        .entry(word)
-                        .or_insert_with(Vec::new)
-                        .push(thread_id);
-                });
+        for (thread_id, message_ids) in threads.iter().enumerate() {
+            for message_id in message_ids {
+                messages[*message_id]
+                    .text
+                    .to_lowercase()
+                    .replace(|c: char| !c.is_alphanumeric(), " ")
+                    .split_whitespace()
+                    .filter(|word| word.len() > 3)
+                    .map(|word| lemmatizer.lemmatize(word))
+                    .for_each(|word| {
+                        thread_index
+                            .entry(word)
+                            .or_insert_with(Vec::new)
+                            .push(thread_id);
+                    });
+            }
         }
 
         Searcher {
@@ -135,14 +143,14 @@ impl Searcher {
         for word in &query {
             if let Some(threads) = self.thread_index.get(word) {
                 for thread in threads {
-                    *thread_scores.entry(thread).or_insert(0) += 1;
+                    *thread_scores.entry(*thread).or_insert(0) += 1;
                 }
             }
         }
 
         let mut thread_search_results = thread_scores
             .iter()
-            .map(|(&&thread_id, &score)| ThreadSearchResult {
+            .map(|(&thread_id, &score)| ThreadSearchResult {
                 thread_id,
                 score,
                 title_text: self.messages[self.threads[thread_id][0]].text.clone(),

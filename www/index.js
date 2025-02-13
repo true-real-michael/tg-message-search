@@ -9,10 +9,10 @@ async function run() {
     const threadsList = document.getElementById('threads-list');
     const detailsContent = document.getElementById('details-content');
     const searchInput = document.getElementById('search-input');
+    const searchButton = document.getElementById('search-button');
 
     // Mock data for threads and details (replace with actual processed data)
-    let threads = [];
-    let filteredThreads = [];
+    var searcher;
 
     // Handle file upload
     fileInput.addEventListener('change', async (event) => {
@@ -25,47 +25,40 @@ async function run() {
             const fileContent = await file.text();
 
             // Pass the file content to the Wasm module for processing
-            const searcher = Searcher.new(fileContent);
+            searcher = Searcher.new(fileContent);
 
-            console.log("done");
+            fileInput.classList.add('hidden');
+            loading.classList.add('hidden');
+            uploadSection.classList.add('hidden');
+            searchDisplaySection.classList.remove('hidden');
 
-            // // Simulate processing delay (replace with actual processing logic)
-            // setTimeout(() => {
-            //     // Hide loading indicator
-            //     loading.classList.add('hidden');
-            //
-            //     // Show the search and display section
-            //     uploadSection.classList.add('hidden');
-            //     searchDisplaySection.classList.remove('hidden');
-            //
-            //     // Mock data (replace with actual processed data)
-            //     threads = [
-            //         {id: 1, title: "Thread 1", details: "Details for Thread 1"},
-            //         {id: 2, title: "Thread 2", details: "Details for Thread 2"},
-            //         {id: 3, title: "Thread 3", details: "Details for Thread 3"},
-            //     ];
-            //     filteredThreads = threads;
-            //
-            //     // Render threads
-            //     renderThreads(filteredThreads);
-            // }, 2000); // Simulate 2 seconds of processing
         }
     });
 
-    // Handle search input
-    searchInput.addEventListener('input', (event) => {
-        const query = event.target.value.toLowerCase();
-        filteredThreads = threads.filter(thread =>
-            thread.title.toLowerCase().includes(query)
-        );
-        renderThreads(filteredThreads);
+    // Function to update threads based on the search query
+    function updateThreads() {
+        const query = searchInput.value.toLowerCase();
+        const threads = searcher.find_threads(query);
+        renderThreads(threads);
+    }
+
+    // Handle search button click
+    searchButton.addEventListener('click', () => {
+        updateThreads();
+    });
+
+    // Handle Enter key press in the search input
+    searchInput.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            updateThreads();
+        }
     });
 
     // Render threads in the left column
     function renderThreads(threads) {
         threadsList.innerHTML = threads.map(thread => `
-                    <li class="p-2 hover:bg-gray-100 cursor-pointer" data-id="${thread.id}">
-                        ${thread.title}
+                    <li class="p-2 hover:bg-gray-100 cursor-pointer" data-id="${thread.thread_id}">
+                        ${thread.title_text}
                     </li>
                 `).join('');
 
@@ -73,15 +66,24 @@ async function run() {
         document.querySelectorAll('#threads-list li').forEach(thread => {
             thread.addEventListener('click', () => {
                 const threadId = thread.getAttribute('data-id');
-                const selectedThread = threads.find(t => t.id == threadId);
-                renderDetails(selectedThread.details);
+                const selectedThread = threads.find(t => t.thread_id == threadId);
+                renderDetails(searcher.get_thread_messages(selectedThread.thread_id));
             });
         });
     }
 
     // Render details in the right column
     function renderDetails(details) {
-        detailsContent.innerHTML = `<p>${details}</p>`;
+        detailsContent.innerHTML = details.map(message => `
+        <div class="bg-blue-100 rounded-lg p-2 m-2">
+            ${message.reply_to_text ? `
+                <div class="truncate bg-blue-200 p-1 ml-1">
+                    ${message.reply_to_text}
+                </div>
+            ` : ''}
+            <div>${message.text}</div>
+        </div>
+    `).join('');
     }
 }
 
