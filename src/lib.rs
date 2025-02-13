@@ -6,26 +6,50 @@ use crate::lemmatizer::Lemmatizer;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
-#[derive!(Clone)]
+#[derive(Clone)]
 pub struct Message {
     pub text: String,
     pub reply_to: Option<usize>,
 }
 
-#[derive!(Clone)]
+#[derive(Clone)]
+#[wasm_bindgen]
 pub struct ThreadSearchResult {
     pub thread_id: usize,
     pub score: u32,
-    pub title_text: String,
+    title_text: String,
 }
 
-#[derive!(Clone)]
+#[wasm_bindgen]
+impl ThreadSearchResult {
+    #[wasm_bindgen(getter)]
+    pub fn title_text(&self) -> String {
+        self.title_text.clone()
+    }
+}
+
+#[derive(Clone)]
+#[wasm_bindgen]
 pub struct MessageResult {
     pub message_id: usize,
-    pub text: String,
-    pub reply_to_text: Option<String>,
+    text: String,
+    reply_to_text: Option<String>,
 }
 
+#[wasm_bindgen]
+impl MessageResult {
+    #[wasm_bindgen(getter)]
+    pub fn text(&self) -> String {
+        self.text.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn reply_to_text(&self) -> Option<String> {
+        self.reply_to_text.clone()
+    }
+}
+
+#[wasm_bindgen]
 pub struct Searcher {
     messages: Vec<Message>,
     threads: Vec<Vec<usize>>,
@@ -36,22 +60,27 @@ pub struct Searcher {
 #[wasm_bindgen]
 impl Searcher {
     pub fn new(messages_csv_input: &str) -> Searcher {
+        utils::set_panic_hook();
         let mut thread_dsu = thread_dsu::ThreadDSU::new();
         let mut messages = Vec::new();
         let mut normalized_ids = HashMap::new();
         let mut current_id = 0;
 
-        for line in messages_csv_input.lines() {
-            let mut parts = line.split(',');
-            let id = parts.next().unwrap().parse::<u32>().unwrap();
-            let text = parts.next().unwrap().to_string();
-            let reply_to = parts
-                .next()
-                .map(|s| s.parse::<u32>().unwrap())
-                .map(|id| normalized_ids[&id]);
-
-            let message = Message { text, reply_to };
-            messages.push(message);
+        let mut reader = csv::Reader::from_reader(messages_csv_input.as_bytes());
+        for result in reader.records() {
+            let record = result.as_ref().expect("Error reading CSV record");
+            let id = record
+                .get(0)
+                .expect("No id found")
+                .parse::<usize>()
+                .unwrap();
+            let text = record.get(2).expect("No message found").to_string();
+            let reply_to = record
+                .get(3)
+                .and_then(|s| s.parse::<usize>().ok())
+                .filter(|&id| id != 0)
+                .map(|id| normalized_ids.get(&id).copied()).flatten();
+            messages.push(Message { text, reply_to });
 
             thread_dsu.make_set(current_id);
             normalized_ids.insert(id, current_id);
@@ -142,4 +171,3 @@ impl Searcher {
             .collect()
     }
 }
-
