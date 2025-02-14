@@ -6,12 +6,6 @@ pub use crate::lemmatizer::Lemmatizer;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
-// macro_rules! log {
-//     ( $( $t:tt )* ) => {
-//         web_sys::console::log_1(&format!( $( $t )* ).into());
-//     }
-// }
-
 #[derive(Clone)]
 pub struct Message {
     pub text: String,
@@ -25,7 +19,7 @@ pub struct ThreadSearchResult {
     pub thread_id: usize,
     pub score: u32,
     title_text: String,
-    date_text: String
+    date_text: String,
 }
 
 #[wasm_bindgen]
@@ -104,7 +98,11 @@ impl Searcher {
                 .filter(|&id| id != 0)
                 .map(|id| normalized_ids.get(&id).copied())
                 .flatten();
-            messages.push(Message { text, reply_to, date_text });
+            messages.push(Message {
+                text,
+                reply_to,
+                date_text,
+            });
 
             thread_dsu.make_set(current_id);
             normalized_ids.insert(id, current_id);
@@ -170,10 +168,13 @@ impl Searcher {
                 date_text: self.messages[self.threads[thread_id][0]].date_text.clone(),
             })
             .collect::<Vec<_>>();
-        if sort_by == 0 { // sort by thread_id
+        if sort_by == 0 {
+            // sort by thread_id
             thread_search_results.sort_by_key(|result| -(result.thread_id as i32));
-        } else { // sort by score and then by thread_id
-            thread_search_results.sort_by_key(|result| (-(result.score as i32), -(result.thread_id as i32)));
+        } else {
+            // sort by score and then by thread_id
+            thread_search_results
+                .sort_by_key(|result| (-(result.score as i32), -(result.thread_id as i32)));
         }
 
         thread_search_results
@@ -185,16 +186,23 @@ impl Searcher {
         self.get_message_range(min_id, max_id)
     }
 
-    pub fn get_message_range(&self, message_id_min: usize, message_id_max: usize) -> Vec<MessageResult> {
-        self.messages[message_id_min..=message_id_max].iter().map(|message| {
-            let reply_to_text = message
-                .reply_to
-                .map(|reply_to_id| self.messages[reply_to_id].text.clone());
-            MessageResult {
-                message_id: message_id_min,
-                text: message.text.clone(),
-                reply_to_text,
-            }
-        }).collect()
+    pub fn get_message_range(
+        &self,
+        message_id_min: usize,
+        message_id_max: usize,
+    ) -> Vec<MessageResult> {
+        self.messages[message_id_min..=message_id_max]
+            .iter()
+            .map(|message| {
+                let reply_to_text = message
+                    .reply_to
+                    .map(|reply_to_id| self.messages[reply_to_id].text.clone());
+                MessageResult {
+                    message_id: message_id_min,
+                    text: message.text.clone(),
+                    reply_to_text,
+                }
+            })
+            .collect()
     }
 }

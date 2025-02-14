@@ -1,3 +1,4 @@
+import './index.css';
 import {Searcher} from "wasm-chat-searcher";
 
 async function run() {
