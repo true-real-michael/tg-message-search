@@ -25,8 +25,6 @@ impl ThreadDSU {
     pub fn union_sets(&mut self, a: usize, b: usize) {
         if let Some(a) = self.find_set(a) {
             if let Some(b) = self.find_set(b) {
-                let mut a = a;
-                let mut b = b;
                 if a != b {
                     let thread_b = self.threads.remove(&b).unwrap();
                     for v in &thread_b {
