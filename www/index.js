@@ -1,4 +1,4 @@
-import { Searcher } from "wasm-chat-searcher";
+import {Searcher} from "wasm-chat-searcher";
 
 async function run() {
     const fileInput = document.getElementById("file-input");
@@ -11,6 +11,7 @@ async function run() {
     const detailsContent = document.getElementById("details-content");
     const searchInput = document.getElementById("search-input");
     const searchButton = document.getElementById("search-button");
+    const sortSelect = document.getElementById("sort-select");
 
     let searcher = null;
     let fileContent = null;
@@ -56,7 +57,8 @@ async function run() {
     // Function to update threads based on the search query
     function updateThreads() {
         const query = searchInput.value.toLowerCase();
-        const threads = searcher.find_threads(query);
+        const sortBy = sortSelect.value === "date" ? 0 : sortSelect.value === "relevance" ? 1 : 0;
+        const threads = searcher.find_threads(query, sortBy);
         renderThreads(threads);
     }
 
@@ -121,7 +123,7 @@ async function run() {
     }
 
     // Render details in the right column
-    function renderDetails(details, hasMoreBefore=true, hasMoreAfter=true) {
+    function renderDetails(details, hasMoreBefore = true, hasMoreAfter = true) {
         let html = "";
 
         if (hasMoreBefore) {

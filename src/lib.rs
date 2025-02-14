@@ -143,7 +143,7 @@ impl Searcher {
         self.threads = threads;
     }
 
-    pub fn find_threads(&self, query: &str) -> Vec<ThreadSearchResult> {
+    pub fn find_threads(&self, query: &str, sort_by: u8) -> Vec<ThreadSearchResult> {
         let query = query
             .to_lowercase()
             .replace(|c: char| !c.is_alphanumeric(), " ")
@@ -170,8 +170,11 @@ impl Searcher {
                 date_text: self.messages[self.threads[thread_id][0]].date_text.clone(),
             })
             .collect::<Vec<_>>();
-
-        thread_search_results.sort_by_key(|result| (-(result.score as i32), -(result.thread_id as i32)));
+        if sort_by == 0 { // sort by thread_id
+            thread_search_results.sort_by_key(|result| -(result.thread_id as i32));
+        } else { // sort by score and then by thread_id
+            thread_search_results.sort_by_key(|result| (-(result.score as i32), -(result.thread_id as i32)));
+        }
 
         thread_search_results
     }
