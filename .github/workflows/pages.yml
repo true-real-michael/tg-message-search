@@ -1,12 +1,6 @@
 name: Deploy to GitHub Pages
 
-on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Tag to deploy'
-        required: true
-        type: string
+on: workflow_dispatch
 
 permissions:
   contents: write
@@ -24,8 +18,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.tag }}
 
       - name: Download large file from release (private repo)
         run: |
