@@ -19,17 +19,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download large file from release (private repo)
-        run: |
-          RELEASE_TAG="0.1.0"
-          FILE_NAME="lemmatization-ru.tsv.gz"
-          REPO_OWNER="${{ github.repository_owner }}"
-          REPO_NAME="${{ github.event.repository.name }}"
-          DOWNLOAD_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${RELEASE_TAG}/${FILE_NAME}"
-
-          echo "Downloading ${FILE_NAME} from ${DOWNLOAD_URL}"
-          mkdir data
-          curl -L -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o data/${FILE_NAME} ${DOWNLOAD_URL}
+      - name: Download lemmatization dictionary
+        uses: robinraju/release-downloader@v1
+        with:
+          fileName: lemmatization-ru.tsv.gz
+          out-file-path: data
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@1.81.0
