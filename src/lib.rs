@@ -6,11 +6,11 @@ pub use crate::lemmatizer::Lemmatizer;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
-macro_rules! log {
-    ( $( $t:tt )* ) => {
-        web_sys::console::log_1(&format!( $( $t )* ).into());
-    }
-}
+// macro_rules! log {
+//     ( $( $t:tt )* ) => {
+//         web_sys::console::log_1(&format!( $( $t )* ).into());
+//     }
+// }
 
 #[derive(Clone)]
 pub struct Message {
@@ -168,8 +168,6 @@ impl Searcher {
     }
 
     pub fn get_thread_messages(&self, thread_id: usize) -> Vec<MessageResult> {
-        log!("get_thread_messages: {}", thread_id);
-        log!("messages: {:?}", self.threads[thread_id]);
         self.threads[thread_id]
             .iter()
             .map(|&message_id| {
