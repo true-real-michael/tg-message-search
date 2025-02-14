@@ -14,6 +14,9 @@ async function run() {
 
     let searcher = null;
     let fileContent = null;
+    let currentThreadId = null; // Track the currently displayed thread ID
+    let currentDetails = []; // Store the currently displayed messages
+    const messagesPerPage = 5; // Number of messages to load per "Load More" click
 
     // 1. Initialize Searcher in the background
     const initSearcher = async () => {
@@ -88,15 +91,45 @@ async function run() {
         document.querySelectorAll("#threads-list li").forEach((thread) => {
             thread.addEventListener("click", () => {
                 const threadId = thread.getAttribute("data-id");
-                const selectedThread = threads.find((t) => t.thread_id == threadId);
-                renderDetails(searcher.get_thread_messages(selectedThread.thread_id));
+                currentThreadId = threadId; // Store the current thread ID
+                loadInitialDetails(threadId);
             });
         });
     }
 
+    async function loadInitialDetails(threadId) {
+        currentDetails = searcher.get_thread_messages(threadId);
+        renderDetails(currentDetails);
+    }
+
+    // Load more messages before the current set
+    async function loadMoreBefore() {
+        if (!currentThreadId) return;
+        const firstMessageId = currentDetails[0].message_id;
+        const newMessages = searcher.get_message_range(firstMessageId - messagesPerPage - 1, firstMessageId - 1);
+        currentDetails = [...newMessages, ...currentDetails];
+        renderDetails(currentDetails);
+    }
+
+    // Load more messages after the current set
+    async function loadMoreAfter() {
+        if (!currentThreadId) return;
+        const lastMessageId = currentDetails[currentDetails.length - 1].message_id;
+        const newMessages = searcher.get_message_range(lastMessageId + 1, lastMessageId + messagesPerPage + 1);
+        currentDetails = [...currentDetails, ...newMessages];
+        renderDetails(currentDetails);
+    }
+
     // Render details in the right column
-    function renderDetails(details) {
-        detailsContent.innerHTML = details
+    function renderDetails(details, hasMoreBefore=true, hasMoreAfter=true) {
+        let html = "";
+
+        if (hasMoreBefore) {
+            html +=
+                '<button id="load-before" class="bg-gray-200 p-2 rounded mb-2 w-full">Load More Before</button>';
+        }
+
+        html += details
             .map(
                 (message) => `
         <div class="bg-blue-100 rounded-lg p-2 m-2">
@@ -114,6 +147,24 @@ async function run() {
     `,
             )
             .join("");
+
+        if (hasMoreAfter) {
+            html +=
+                '<button id="load-after" class="bg-gray-200 p-2 rounded mt-2 w-full">Load More After</button>';
+        }
+
+        detailsContent.innerHTML = html;
+
+        // Attach event listeners to the "Load More" buttons
+        const loadBeforeButton = document.getElementById("load-before");
+        if (loadBeforeButton) {
+            loadBeforeButton.addEventListener("click", loadMoreBefore);
+        }
+
+        const loadAfterButton = document.getElementById("load-after");
+        if (loadAfterButton) {
+            loadAfterButton.addEventListener("click", loadMoreAfter);
+        }
     }
 }
 
