@@ -32,12 +32,8 @@ jobs:
           curl -L -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o data/${FILE_NAME} ${DOWNLOAD_URL}
 
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: 1.81.0
-          target: wasm32-unknown-unknown
-          override: true
-
+        uses: dtolnay/rust-toolchain@1.81.0
+        
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
