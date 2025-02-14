@@ -28,9 +28,6 @@ impl ThreadDSU {
                 let mut a = a;
                 let mut b = b;
                 if a != b {
-                    if self.threads.get(&a).unwrap().len() < self.threads.get(&b).unwrap().len() {
-                        (a, b) = (b, a);
-                    }
                     let thread_b = self.threads.remove(&b).unwrap();
                     for v in &thread_b {
                         self.parents.insert(*v, a);

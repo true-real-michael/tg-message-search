@@ -2,7 +2,7 @@ mod lemmatizer;
 mod thread_dsu;
 mod utils;
 
-use crate::lemmatizer::Lemmatizer;
+pub use crate::lemmatizer::Lemmatizer;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
@@ -65,8 +65,17 @@ pub struct Searcher {
 
 #[wasm_bindgen]
 impl Searcher {
-    pub fn new(messages_csv_input: &str) -> Searcher {
+    pub fn new() -> Searcher {
         utils::set_panic_hook();
+        Searcher {
+            messages: Vec::new(),
+            threads: Vec::new(),
+            lemmatizer: Lemmatizer::new(),
+            thread_index: HashMap::new(),
+        }
+    }
+
+    pub fn set_data(&mut self, messages_csv_input: &str) {
         let mut thread_dsu = thread_dsu::ThreadDSU::new();
         let mut messages = Vec::new();
         let mut normalized_ids = HashMap::new();
@@ -96,12 +105,11 @@ impl Searcher {
 
         for (id, message) in messages.iter().enumerate() {
             if let Some(reply_to) = message.reply_to {
-                thread_dsu.union_sets(id, reply_to);
+                thread_dsu.union_sets(reply_to, id); // order is important
             }
         }
 
         let threads = thread_dsu.get_threads();
-        let lemmatizer = Lemmatizer::new();
 
         let mut thread_index = HashMap::new();
         for (thread_id, message_ids) in threads.iter().enumerate() {
@@ -112,7 +120,7 @@ impl Searcher {
                     .replace(|c: char| !c.is_alphanumeric(), " ")
                     .split_whitespace()
                     .filter(|word| word.len() > 3)
-                    .map(|word| lemmatizer.lemmatize(word))
+                    .map(|word| self.lemmatizer.lemmatize(word))
                     .for_each(|word| {
                         thread_index
                             .entry(word)
@@ -122,12 +130,9 @@ impl Searcher {
             }
         }
 
-        Searcher {
-            messages,
-            threads,
-            lemmatizer,
-            thread_index,
-        }
+        self.thread_index = thread_index;
+        self.messages = messages;
+        self.threads = threads;
     }
 
     pub fn find_threads(&self, query: &str) -> Vec<ThreadSearchResult> {
@@ -163,6 +168,8 @@ impl Searcher {
     }
 
     pub fn get_thread_messages(&self, thread_id: usize) -> Vec<MessageResult> {
+        log!("get_thread_messages: {}", thread_id);
+        log!("messages: {:?}", self.threads[thread_id]);
         self.threads[thread_id]
             .iter()
             .map(|&message_id| {
