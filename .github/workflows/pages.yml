@@ -1,0 +1,77 @@
+name: Deploy to GitHub Pages
+
+on: workflow_dispatch
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download large file from release (private repo)
+        run: |
+          RELEASE_TAG="0.1.0"
+          FILE_NAME="lemmatization-ru.tsv.gz"
+          REPO_OWNER="${{ github.repository_owner }}"
+          REPO_NAME="${{ github.event.repository.name }}"
+          DOWNLOAD_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${RELEASE_TAG}/${FILE_NAME}"
+
+          echo "Downloading ${FILE_NAME} from ${DOWNLOAD_URL}"
+          mkdir data
+          curl -L -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -o data/${FILE_NAME} ${DOWNLOAD_URL}
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.81.0
+          target: wasm32-unknown-unknown
+          override: true
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 23
+
+      - name: Install wasm-pack (npm)
+        run: npm install -g wasm-pack
+
+      - name: Build WASM Package
+        run: wasm-pack build
+
+      - name: Install npm dependencies
+        working-directory: www
+        run: npm install
+
+      - name: Build JavaScript with Webpack
+        working-directory: www
+        run: npm run build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: www/dist
+
+  deploy:
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
