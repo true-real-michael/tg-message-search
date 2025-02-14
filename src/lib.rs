@@ -16,6 +16,7 @@ use wasm_bindgen::prelude::*;
 pub struct Message {
     pub text: String,
     pub reply_to: Option<usize>,
+    pub date_text: String,
 }
 
 #[derive(Clone)]
@@ -24,6 +25,7 @@ pub struct ThreadSearchResult {
     pub thread_id: usize,
     pub score: u32,
     title_text: String,
+    date_text: String
 }
 
 #[wasm_bindgen]
@@ -31,6 +33,11 @@ impl ThreadSearchResult {
     #[wasm_bindgen(getter)]
     pub fn title_text(&self) -> String {
         self.title_text.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn date_text(&self) -> String {
+        self.date_text.clone()
     }
 }
 
@@ -89,6 +96,7 @@ impl Searcher {
                 .expect("No id found")
                 .parse::<usize>()
                 .unwrap();
+            let date_text = record.get(1).expect("No date found")[..7].to_string();
             let text = record.get(2).expect("No message found").to_string();
             let reply_to = record
                 .get(3)
@@ -96,7 +104,7 @@ impl Searcher {
                 .filter(|&id| id != 0)
                 .map(|id| normalized_ids.get(&id).copied())
                 .flatten();
-            messages.push(Message { text, reply_to });
+            messages.push(Message { text, reply_to, date_text });
 
             thread_dsu.make_set(current_id);
             normalized_ids.insert(id, current_id);
@@ -159,6 +167,7 @@ impl Searcher {
                 thread_id,
                 score,
                 title_text: self.messages[self.threads[thread_id][0]].text.clone(),
+                date_text: self.messages[self.threads[thread_id][0]].date_text.clone(),
             })
             .collect::<Vec<_>>();
 
@@ -168,19 +177,21 @@ impl Searcher {
     }
 
     pub fn get_thread_messages(&self, thread_id: usize) -> Vec<MessageResult> {
-        self.threads[thread_id]
-            .iter()
-            .map(|&message_id| {
-                let message = &self.messages[message_id];
-                let reply_to_text = message
-                    .reply_to
-                    .map(|reply_to_id| self.messages[reply_to_id].text.clone());
-                MessageResult {
-                    message_id,
-                    text: message.text.clone(),
-                    reply_to_text,
-                }
-            })
-            .collect()
+        let min_id = self.threads[thread_id].first().copied().unwrap();
+        let max_id = self.threads[thread_id].last().copied().unwrap();
+        self.get_message_range(min_id, max_id)
+    }
+
+    pub fn get_message_range(&self, message_id_min: usize, message_id_max: usize) -> Vec<MessageResult> {
+        self.messages[message_id_min..=message_id_max].iter().map(|message| {
+            let reply_to_text = message
+                .reply_to
+                .map(|reply_to_id| self.messages[reply_to_id].text.clone());
+            MessageResult {
+                message_id: message_id_min,
+                text: message.text.clone(),
+                reply_to_text,
+            }
+        }).collect()
     }
 }

@@ -75,7 +75,10 @@ async function run() {
             .map(
                 (thread) => `
                     <li class="p-2 hover:bg-gray-100 cursor-pointer" data-id="${thread.thread_id}">
-                        ${thread.title_text}
+                        <div class="flex justify-between items-center">
+                            <span class="truncate">${thread.title_text}</span>
+                            <span class="text-sm text-gray-500 ml-2 whitespace-nowrap">${thread.date_text}</span>
+                        </div>
                     </li>
                 `,
             )
