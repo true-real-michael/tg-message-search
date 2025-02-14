@@ -1,4 +1,4 @@
-import { Searcher } from "wasm-chat-analysis";
+import { Searcher } from "wasm-chat-searcher";
 
 async function run() {
     const fileInput = document.getElementById("file-input");

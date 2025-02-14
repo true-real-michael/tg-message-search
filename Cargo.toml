@@ -1,5 +1,5 @@
 [package]
-name = "wasm-chat-analysis"
+name = "wasm-chat-searcher"
 version = "0.1.0"
 authors = ["Mikhail Kiselyov <kiselev.0353@gmail.com>"]
 edition = "2018"
