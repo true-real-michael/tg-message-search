@@ -22,6 +22,7 @@ jobs:
       - name: Download lemmatization dictionary
         uses: robinraju/release-downloader@v1
         with:
+          latest: true
           fileName: lemmatization-ru.tsv.gz
           out-file-path: data
 
