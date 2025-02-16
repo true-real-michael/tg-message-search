@@ -1,7 +1,7 @@
-import './index.css';
+import "./index.css";
 import {Searcher} from "wasm-chat-searcher";
 
-async function run() {
+function run() {
     const fileInput = document.getElementById("file-input");
     const loading = document.getElementById("loading");
     const uploadSection = document.getElementById("upload-section");
@@ -14,25 +14,11 @@ async function run() {
     const searchButton = document.getElementById("search-button");
     const sortSelect = document.getElementById("sort-select");
 
-    let searcher = null;
-    let fileContent = null;
     let currentThreadId = null; // Track the currently displayed thread ID
     let currentDetails = []; // Store the currently displayed messages
     const messagesPerPage = 5; // Number of messages to load per "Load More" click
 
-    // 1. Initialize Searcher in the background
-    const initSearcher = async () => {
-        searcher = Searcher.new();
-        if (fileContent) {
-            searcher.set_data(fileContent);
-            fileInput.classList.add("hidden");
-            loading.classList.add("hidden");
-            uploadSection.classList.add("hidden");
-            searchDisplaySection.classList.remove("hidden");
-        }
-    };
-
-    initSearcher();
+    const searcher = Searcher.new();
 
     // 2. Handle file upload
     fileInput.addEventListener("change", async (event) => {
@@ -42,15 +28,22 @@ async function run() {
             loading.classList.remove("hidden");
 
             // Read the file as text
-            fileContent = await file.text();
+            const fileContent = await file.text();
 
-            // 3. Set data if searcher is already initialized
-            if (searcher) {
+            // 3. Set data
+            try {
                 searcher.set_data(fileContent);
                 fileInput.classList.add("hidden");
                 loading.classList.add("hidden");
                 uploadSection.classList.add("hidden");
                 searchDisplaySection.classList.remove("hidden");
+            } catch (error) {
+                console.error("Error setting data:", error);
+                alert(
+                    "Error: The uploaded file is not in the correct format.  Please ensure it's valid JSON.",
+                );
+                loading.classList.add("hidden");
+                fileInput.value = ""; // Clear the file input
             }
         }
     });
@@ -58,7 +51,7 @@ async function run() {
     // Function to update threads based on the search query
     function updateThreads() {
         const query = searchInput.value.toLowerCase();
-        const sortBy = sortSelect.value === "date" ? 0 : sortSelect.value === "relevance" ? 1 : 0;
+        const sortBy = sortSelect.value === "date" ? 0 : 1;
         const threads = searcher.find_threads(query, sortBy);
         renderThreads(threads);
     }
@@ -79,14 +72,20 @@ async function run() {
     function renderThreads(threads) {
         threadsList.innerHTML = threads
             .map(
-                (thread) => `
-                    <li class="p-2 hover:bg-gray-100 cursor-pointer" data-id="${thread.thread_id}">
-                        <div class="flex justify-between items-center">
-                            <span class="truncate">${thread.title_text}</span>
-                            <span class="text-sm text-gray-500 ml-2 whitespace-nowrap">${thread.date_text}</span>
-                        </div>
-                    </li>
-                `,
+                (thread) => {
+                    const date = new Date(thread.date_unixtime * 1000);
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, "0");
+                    const formattedDate = `${year}-${month}`;
+                    return `
+                        <li class="p-2 hover:bg-gray-100 cursor-pointer" data-id="${thread.thread_id}">
+                            <div class="flex justify-between items-center">
+                                <span class="truncate">${thread.title_text}</span>
+                                <span class="text-sm text-gray-500 ml-2 whitespace-nowrap">${formattedDate}</span>
+                            </div>
+                        </li>
+                    `
+                },
             )
             .join("");
 
@@ -100,31 +99,42 @@ async function run() {
         });
     }
 
-    async function loadInitialDetails(threadId) {
+    function loadInitialDetails(threadId) {
         currentDetails = searcher.get_thread_messages(threadId);
         renderDetails(currentDetails);
     }
 
     // Load more messages before the current set
-    async function loadMoreBefore() {
+    function loadMoreBefore() {
         if (!currentThreadId) return;
         const firstMessageId = currentDetails[0].message_id;
-        const newMessages = searcher.get_message_range(firstMessageId - messagesPerPage - 1, firstMessageId - 1);
+        const newMessages = searcher.get_message_range(
+            firstMessageId - messagesPerPage - 1,
+            firstMessageId - 1,
+        );
         currentDetails = [...newMessages, ...currentDetails];
         renderDetails(currentDetails);
     }
 
     // Load more messages after the current set
-    async function loadMoreAfter() {
+    function loadMoreAfter() {
         if (!currentThreadId) return;
-        const lastMessageId = currentDetails[currentDetails.length - 1].message_id;
-        const newMessages = searcher.get_message_range(lastMessageId + 1, lastMessageId + messagesPerPage + 1);
+        const lastMessageId =
+            currentDetails[currentDetails.length - 1].message_id;
+        const newMessages = searcher.get_message_range(
+            lastMessageId + 1,
+            lastMessageId + messagesPerPage + 1,
+        );
         currentDetails = [...currentDetails, ...newMessages];
         renderDetails(currentDetails);
     }
 
     // Render details in the right column
-    function renderDetails(details, hasMoreBefore = true, hasMoreAfter = true) {
+    function renderDetails(
+        details,
+        hasMoreBefore = true,
+        hasMoreAfter = true,
+    ) {
         let html = "";
 
         if (hasMoreBefore) {
