@@ -75,6 +75,8 @@ pub fn deserialize_messages(json: &str) -> Result<Vec<Message>, anyhow::Error> {
         if let Some(reply_to_message_id) = message.reply_to_message_id {
             if let Some(pruned_reply_to_message_id) = pruned_ids.get(&reply_to_message_id) {
                 message.reply_to_message_id = Some(*pruned_reply_to_message_id);
+            } else {
+                message.reply_to_message_id = None;
             }
         }
         pruned_ids.insert(message.id, current_id);

@@ -169,12 +169,11 @@ impl Searcher {
         self.messages[message_id_min..=message_id_max]
             .iter()
             .map(|message| {
-                utils::log!("reply to: {:?}", message.reply_to_message_id);
                 let reply_to_text = message
                     .reply_to_message_id
                     .map(|reply_to_id| self.messages[reply_to_id].clone().into());
                 MessageResult {
-                    message_id: message_id_min,
+                    message_id: message.id,
                     text: message.clone().into(),
                     reply_to_text,
                 }

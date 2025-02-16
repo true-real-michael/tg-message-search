@@ -14,7 +14,6 @@ function run() {
     const searchButton = document.getElementById("search-button");
     const sortSelect = document.getElementById("sort-select");
 
-    let fileContent = null;
     let currentThreadId = null; // Track the currently displayed thread ID
     let currentDetails = []; // Store the currently displayed messages
     const messagesPerPage = 5; // Number of messages to load per "Load More" click
@@ -29,7 +28,7 @@ function run() {
             loading.classList.remove("hidden");
 
             // Read the file as text
-            fileContent = await file.text();
+            const fileContent = await file.text();
 
             // 3. Set data
             try {
@@ -45,7 +44,6 @@ function run() {
                 );
                 loading.classList.add("hidden");
                 fileInput.value = ""; // Clear the file input
-                fileContent = null;
             }
         }
     });
