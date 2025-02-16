@@ -160,6 +160,7 @@ struct Chat {
     messages: Vec<DeserializedMessage>,
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
