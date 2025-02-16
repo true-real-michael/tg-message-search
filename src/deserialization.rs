@@ -57,7 +57,7 @@ impl From<Message> for String {
         value
             .text_entities
             .into_iter()
-            .map(|entity| String::from(entity))
+            .map(String::from)
             .collect::<String>()
     }
 }
@@ -65,13 +65,12 @@ impl From<Message> for String {
 pub fn deserialize_messages(json: &str) -> Result<Vec<Message>, anyhow::Error> {
     let chat: Chat = serde_json::from_str(json)?;
     let mut pruned_ids = HashMap::new();
-    let mut current_id = 0;
     let mut messages = chat
         .messages
         .into_iter()
         .map(Message::from)
         .collect::<Vec<Message>>();
-    for message in &mut messages {
+    for (new_id, message) in messages.iter_mut().enumerate() {
         if let Some(reply_to_message_id) = message.reply_to_message_id {
             if let Some(pruned_reply_to_message_id) = pruned_ids.get(&reply_to_message_id) {
                 message.reply_to_message_id = Some(*pruned_reply_to_message_id);
@@ -79,9 +78,8 @@ pub fn deserialize_messages(json: &str) -> Result<Vec<Message>, anyhow::Error> {
                 message.reply_to_message_id = None;
             }
         }
-        pruned_ids.insert(message.id, current_id);
-        message.id = current_id;
-        current_id += 1;
+        pruned_ids.insert(message.id, new_id);
+        message.id = new_id;
     }
     Ok(messages)
 }

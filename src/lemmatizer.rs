@@ -15,10 +15,10 @@ impl Lemmatizer {
         let mut data = String::new();
         decoder.read_to_string(&mut data).unwrap();
         let dict: HashMap<String, String> = data
-            .split(|char| char == '\n')
+            .split('\n')
             .filter(|line| !line.is_empty())
             .map(|line| {
-                let mut parts = line.splitn(2, |c| c == '\t');
+                let mut parts = line.splitn(2, '\t');
                 let word = parts.next().unwrap().to_string();
                 let lemma = parts.next().unwrap().to_string();
                 (word, lemma)

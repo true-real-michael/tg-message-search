@@ -54,9 +54,8 @@ pub struct Searcher {
     thread_index: HashMap<String, Vec<usize>>,
 }
 
-#[wasm_bindgen]
-impl Searcher {
-    pub fn new() -> Searcher {
+impl Default for Searcher {
+    fn default() -> Self {
         utils::set_panic_hook();
         Searcher {
             messages: Vec::new(),
@@ -64,6 +63,13 @@ impl Searcher {
             lemmatizer: Lemmatizer::new(),
             thread_index: HashMap::new(),
         }
+    }
+}
+
+#[wasm_bindgen]
+impl Searcher {
+    pub fn new() -> Searcher {
+        Self::default()
     }
 
     pub fn set_data(&mut self, json: &str) -> Result<(), JsError> {
@@ -87,8 +93,7 @@ impl Searcher {
             for message_id in message_ids {
                 for text_entity in &messages[*message_id].text_entities {
                     if let deserialization::TextEntity::Lemmatizable(text) = text_entity {
-                        text
-                            .to_lowercase()
+                        text.to_lowercase()
                             .replace(|c: char| !c.is_alphanumeric(), " ")
                             .split_whitespace()
                             .filter(|word| word.len() > 3)
@@ -101,7 +106,6 @@ impl Searcher {
                             });
                     }
                 }
-
             }
         }
 
