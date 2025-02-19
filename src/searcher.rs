@@ -126,7 +126,7 @@ impl Searcher {
 
     fn find_threads_by_query(&self, query: SearchQuery) -> Vec<usize> {
         match query {
-            SearchQuery::Word(word) => { let res = self.find_threads_by_word(word); utils::log!("{:?}", res); res },
+            SearchQuery::Word(word) => self.find_threads_by_word(word),
             SearchQuery::Or((query_left, query_right)) => MergeOr::new(
                 self.find_threads_by_query(*query_left).iter(),
                 self.find_threads_by_query(*query_right).iter(),
