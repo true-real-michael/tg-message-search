@@ -8,9 +8,16 @@
 <div class="container mx-auto p-4">
     <!-- Upload Section -->
     <div id="upload-section" class="mb-8">
-        <h1 class="text-2xl font-bold mb-4">Upload Messages file in a csv format</h1>
+        <h1 class="text-2xl font-bold mb-4">Upload exported messages in a json format</h1>
         <input type="file" id="file-input" class="mb-4 border border-gray-300 rounded p-2 w-full cursor-pointer" />
         <div id="loading" class="hidden text-blue-500">Processing file... Please wait.</div>
+        <!-- todo: fix -->
+        <ol>
+            <li>- Export the text data from a telegram chat according to <a href="https://telegram.org/blog/export-and-more">this page</a>.</li>
+            <li>- Upload the <code>results.json</code> file from the export directory. (This app runs fully in your browser and it doesn't save any data.)</li>
+            <li>- Enter the keywords and find the relevant parts of the chat.</li>
+        </ol>
+        <div>Feel free to check out this project's <a href="https://github.com/true-real-michael/wasm-chat-searcher">GitHub</a></div>
     </div>
 
     <!-- Search and Display Section (Hidden Initially) -->
@@ -22,8 +29,8 @@
 
             <label for="sort-select" class="ml-4 mr-2">Sort by:</label>
             <select id="sort-select" class="border border-gray-300 rounded p-2">
-                <option value="relevance">Relevance</option>
                 <option value="date">Date</option>
+                <option value="relevance">Relevance</option>
                 <!-- Add more options as needed -->
             </select>
         </div>
