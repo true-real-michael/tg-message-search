@@ -148,7 +148,7 @@ impl Searcher {
             .parse()
             .map_err(|e| JsError::from(&*e))?;
 
-        let result = self
+        let mut result: Vec<ThreadSearchResult> = self
             .find_threads_by_query(query)
             .into_iter()
             .map(|thread_id| {
@@ -160,9 +160,10 @@ impl Searcher {
                     title_text: message.clone().into(),
                     date_unixtime: message.date_unixtime,
                 }
-            });
-
-        Ok(result.collect())
+            })
+            .collect();
+        result.sort_by_key(|thread| -(thread.date_unixtime as i32));
+        Ok(result)
     }
 
     pub fn get_thread_messages(&self, thread_id: usize) -> Vec<MessageResult> {
