@@ -1,5 +1,6 @@
 mod deserialization;
 mod lemmatizer;
+mod merge;
 mod query;
 mod searcher;
 mod thread_dsu;

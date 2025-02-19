@@ -1,8 +1,10 @@
 use crate::deserialization::{deserialize_messages, Message, TextEntity};
 use crate::lemmatizer::Lemmatizer;
+use crate::merge::{MergeAnd, MergeOr};
+use crate::query::{Lexer, Parser, SearchQuery};
 use crate::thread_dsu::ThreadDSU;
 use crate::utils;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use wasm_bindgen::prelude::*;
 
 #[derive(Clone)]
@@ -112,43 +114,51 @@ impl Searcher {
         Ok(())
     }
 
-    pub fn find_threads(&self, query: &str, sort_by: u8) -> Vec<ThreadSearchResult> {
-        let query = query
-            .to_lowercase()
-            .replace(|c: char| !c.is_alphanumeric(), " ")
-            .split_whitespace()
-            .filter(|word| word.len() > 3)
-            .map(|word| self.lemmatizer.lemmatize(word))
-            .collect::<Vec<_>>();
+    fn find_threads_by_word(&self, word: String) -> Vec<usize> {
+        utils::log!("find_threads_by_word({})", word);
+        let word = word.to_lowercase();
+        self.thread_index.get(&word).cloned().unwrap_or_default()
+    }
 
-        let mut thread_scores = HashMap::new();
-        for word in &query {
-            if let Some(threads) = self.thread_index.get(word) {
-                for thread in threads {
-                    *thread_scores.entry(*thread).or_insert(0) += 1;
+    fn find_threads_by_query(&self, query: SearchQuery) -> Vec<usize> {
+        match query {
+            SearchQuery::Word(word) => { let res = self.find_threads_by_word(word); utils::log!("{:?}", res); res },
+            SearchQuery::Or((query_left, query_right)) => MergeOr::new(
+                self.find_threads_by_query(*query_left).iter(),
+                self.find_threads_by_query(*query_right).iter(),
+            )
+            .copied()
+            .collect(),
+            SearchQuery::And((query_left, query_right)) => MergeAnd::new(
+                self.find_threads_by_query(*query_left).iter(),
+                self.find_threads_by_query(*query_right).iter(),
+            )
+            .copied()
+            .collect(),
+        }
+    }
+
+    pub fn find_threads(&self, query: &str) -> Result<Vec<ThreadSearchResult>, JsError> {
+        let query = Parser::new(Lexer::new(query))
+            .map_err(|e| JsError::from(&*e))?
+            .parse()
+            .map_err(|e| JsError::from(&*e))?;
+
+        let result = self
+            .find_threads_by_query(query)
+            .into_iter()
+            .map(|thread_id| {
+                let message_id = self.threads[thread_id].first().copied().unwrap();
+                let message = &self.messages[message_id];
+                ThreadSearchResult {
+                    thread_id: thread_id as u32,
+                    score: 0,
+                    title_text: message.clone().into(),
+                    date_unixtime: message.date_unixtime,
                 }
-            }
-        }
+            });
 
-        let mut thread_search_results = thread_scores
-            .iter()
-            .map(|(&thread_id, &score)| ThreadSearchResult {
-                thread_id: thread_id as u32,
-                score,
-                title_text: self.messages[self.threads[thread_id][0]].clone().into(),
-                date_unixtime: self.messages[self.threads[thread_id][0]].date_unixtime,
-            })
-            .collect::<Vec<_>>();
-        if sort_by == 0 {
-            // sort by thread_id
-            thread_search_results.sort_by_key(|result| -(result.date_unixtime as i32));
-        } else {
-            // sort by score and then by thread_id
-            thread_search_results
-                .sort_by_key(|result| (-(result.score as i32), -(result.date_unixtime as i32)));
-        }
-
-        thread_search_results
+        Ok(result.collect())
     }
 
     pub fn get_thread_messages(&self, thread_id: usize) -> Vec<MessageResult> {

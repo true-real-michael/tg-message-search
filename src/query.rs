@@ -1,41 +1,34 @@
 use anyhow::{anyhow, Result};
-use std::str::FromStr;
 
 #[derive(Debug, PartialEq, Eq)]
-enum SearchQuery {
+pub enum SearchQuery {
     Word(String),
-    And(Box<(SearchQuery, SearchQuery)>),
-    Or(Box<(SearchQuery, SearchQuery)>),
-}
-
-enum ParseItem {
-    And,
-    Or,
-    Word,
+    And((Box<SearchQuery>, Box<SearchQuery>)),
+    Or((Box<SearchQuery>, Box<SearchQuery>)),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-enum Token {
+pub(crate) enum Token {
     LParen,
     RParen,
     And,
     Or,
     Word(String),
-    EOF,
+    Eof,
 }
 
-pub struct Lexer<'a> {
+pub(crate) struct Lexer<'a> {
     input: &'a str,
     pos: usize,
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new(input: &'a str) -> Self {
+    pub(crate) fn new(input: &'a str) -> Self {
         Lexer { input, pos: 0 }
     }
 
-    pub fn next_token(&mut self) -> Result<Token> {
-        while self.pos < self.input.len() {
+    pub(crate) fn next_token(&mut self) -> Result<Token> {
+        while self.pos < self.input.chars().count() {
             let current_char = self.current_char();
 
             if current_char.is_whitespace() {
@@ -67,11 +60,11 @@ impl<'a> Lexer<'a> {
                 _ => Err(anyhow!("Unexpected character: {}", current_char)),
             };
         }
-        Ok(Token::EOF)
+        Ok(Token::Eof)
     }
 
     fn current_char(&self) -> char {
-        self.input[self.pos..].chars().next().unwrap_or('\0')
+        self.input.chars().nth(self.pos).unwrap_or('\0')
     }
 
     fn skip_whitespace(&mut self) {
@@ -85,7 +78,14 @@ impl<'a> Lexer<'a> {
         while self.pos < self.input.len() && self.current_char().is_alphanumeric() {
             self.pos += 1;
         }
-        String::from(&self.input[start_pos..self.pos])
+        String::from(
+            &self
+                .input
+                .chars()
+                .skip(start_pos)
+                .take(self.pos - start_pos)
+                .collect::<String>(),
+        )
     }
 }
 
@@ -98,7 +98,7 @@ impl<'a> Parser<'a> {
     pub fn new(lexer: Lexer<'a>) -> Result<Self> {
         let mut parser = Parser {
             lexer,
-            current_token: Token::EOF,
+            current_token: Token::Eof,
         };
         parser.current_token = parser.lexer.next_token()?;
         Ok(parser)
@@ -120,8 +120,8 @@ impl<'a> Parser<'a> {
             self.eat(op.clone())?;
             let rhs = self.parse_primary()?;
             result = match op {
-                Token::Or => SearchQuery::Or(Box::new((result, rhs))),
-                Token::And => SearchQuery::And(Box::new((result, rhs))),
+                Token::Or => SearchQuery::Or((Box::new(result), Box::new(rhs))),
+                Token::And => SearchQuery::And((Box::new(result), Box::new(rhs))),
                 _ => unreachable!(),
             };
         }
@@ -185,10 +185,10 @@ mod tests {
         let lexer = Lexer::new(&input);
         let mut parser = Parser::new(lexer).unwrap();
         let output = parser.parse().unwrap();
-        let expected = SearchQuery::And(Box::new((
-            SearchQuery::Word("word".to_string()),
-            SearchQuery::Word("word2".to_string()),
-        )));
+        let expected = SearchQuery::And((
+            Box::new(SearchQuery::Word("word".to_string())),
+            Box::new(SearchQuery::Word("word2".to_string())),
+        ));
         assert_eq!(expected, output);
     }
 
@@ -198,23 +198,23 @@ mod tests {
         let lexer = Lexer::new(&input);
         let mut parser = Parser::new(lexer).unwrap();
         let output = parser.parse().unwrap();
-        let expected = SearchQuery::Or(Box::new((
-            SearchQuery::Word("word".to_string()),
-            SearchQuery::Word("word2".to_string()),
-        )));
+        let expected = SearchQuery::Or((
+            Box::new(SearchQuery::Word("word".to_string())),
+            Box::new(SearchQuery::Word("word2".to_string())),
+        ));
         assert_eq!(expected, output);
     }
 
     #[test]
     fn test_or_with_paren() {
-        let input = String::from("(word | (word2))");
+        let input = String::from("(слово1 | (слово2))");
         let lexer = Lexer::new(&input);
         let mut parser = Parser::new(lexer).unwrap();
         let output = parser.parse().unwrap();
-        let expected = SearchQuery::Or(Box::new((
-            SearchQuery::Word("word".to_string()),
-            SearchQuery::Word("word2".to_string()),
-        )));
+        let expected = SearchQuery::Or((
+            Box::new(SearchQuery::Word("слово1".to_string())),
+            Box::new(SearchQuery::Word("слово2".to_string())),
+        ));
         assert_eq!(expected, output);
     }
 
@@ -224,19 +224,19 @@ mod tests {
         let lexer = Lexer::new(&input);
         let mut parser = Parser::new(lexer).unwrap();
         let output = parser.parse().unwrap();
-        let expected = SearchQuery::And(Box::new((
-            SearchQuery::Or(Box::new((
-                SearchQuery::Word("word1".to_string()),
-                SearchQuery::Word("word2".to_string()),
+        let expected = SearchQuery::And((
+            Box::new(SearchQuery::Or((
+                Box::new(SearchQuery::Word("word1".to_string())),
+                Box::new(SearchQuery::Word("word2".to_string())),
             ))),
-            SearchQuery::Or(Box::new((
-                SearchQuery::Or(Box::new((
-                    SearchQuery::Word("word3".to_string()),
-                    SearchQuery::Word("word4".to_string()),
+            Box::new(SearchQuery::Or((
+                Box::new(SearchQuery::Or((
+                    Box::new(SearchQuery::Word("word3".to_string())),
+                    Box::new(SearchQuery::Word("word4".to_string())),
                 ))),
-                SearchQuery::Word("word5".to_string()),
+                Box::new(SearchQuery::Word("word5".to_string())),
             ))),
-        )));
+        ));
         assert_eq!(expected, output);
     }
 }
