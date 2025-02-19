@@ -105,42 +105,31 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse(&mut self) -> Result<SearchQuery> {
-        self.expr()
+        self.parse_expression()
     }
 
-    fn expr(&mut self) -> Result<SearchQuery> {
-        let mut result = self.term()?;
+    fn parse_expression(&mut self) -> Result<SearchQuery> {
+        self.parse_binary_operation()
+    }
 
-        while matches!(self.current_token, Token::Or) {
+    fn parse_binary_operation(&mut self) -> Result<SearchQuery> {
+        let mut result = self.parse_primary()?;
+
+        while matches!(self.current_token, Token::Or | Token::And) {
             let op = self.current_token.clone();
             self.eat(op.clone())?;
-            let rhs = self.term()?;
+            let rhs = self.parse_primary()?;
             result = match op {
                 Token::Or => SearchQuery::Or(Box::new((result, rhs))),
-                _ => result,
-            };
-        }
-
-        Ok(result)
-    }
-
-    fn term(&mut self) -> Result<SearchQuery> {
-        let mut result = self.factor()?;
-
-        while matches!(self.current_token, Token::And) {
-            let op = self.current_token.clone();
-            self.eat(op.clone())?;
-            let rhs = self.factor()?;
-            result = match op {
                 Token::And => SearchQuery::And(Box::new((result, rhs))),
-                _ => result,
+                _ => unreachable!(),
             };
         }
 
         Ok(result)
     }
 
-    fn factor(&mut self) -> Result<SearchQuery> {
+    fn parse_primary(&mut self) -> Result<SearchQuery> {
         match self.current_token.clone() {
             Token::Word(value) => {
                 self.eat(Token::Word(value.clone()))?;
@@ -148,7 +137,7 @@ impl<'a> Parser<'a> {
             }
             Token::LParen => {
                 self.eat(Token::LParen)?;
-                let result = self.expr()?;
+                let result = self.parse_expression()?;
                 self.eat(Token::RParen)?;
                 Ok(result)
             }
