@@ -12,7 +12,6 @@ function run() {
     const detailsContent = document.getElementById("details-content");
     const searchInput = document.getElementById("search-input");
     const searchButton = document.getElementById("search-button");
-    const sortSelect = document.getElementById("sort-select");
 
     let currentThreadId = null; // Track the currently displayed thread ID
     let currentDetails = []; // Store the currently displayed messages
@@ -51,8 +50,7 @@ function run() {
     // Function to update threads based on the search query
     function updateThreads() {
         const query = searchInput.value.toLowerCase();
-        const sortBy = sortSelect.value === "date" ? 0 : 1;
-        const threads = searcher.find_threads(query, sortBy);
+        const threads = searcher.find_threads(query);
         renderThreads(threads);
     }
 
