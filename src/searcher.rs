@@ -89,6 +89,7 @@ impl Searcher {
 
         let mut thread_index = HashMap::new();
         for (thread_id, message_ids) in threads.iter().enumerate() {
+            let mut used_words = HashSet::new();
             for message_id in message_ids {
                 for text_entity in &messages[*message_id].text_entities {
                     if let TextEntity::Lemmatizable(text) = text_entity {
@@ -98,10 +99,13 @@ impl Searcher {
                             .filter(|word| word.len() > 3)
                             .map(|word| self.lemmatizer.lemmatize(word))
                             .for_each(|word| {
-                                thread_index
-                                    .entry(word)
-                                    .or_insert_with(Vec::new)
-                                    .push(thread_id);
+                                if !used_words.contains(&word) {
+                                    thread_index
+                                        .entry(word.clone())
+                                        .or_insert_with(Vec::new)
+                                        .push(thread_id);
+                                    used_words.insert(word);
+                                }
                             });
                     }
                 }
