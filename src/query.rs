@@ -113,7 +113,7 @@ impl<'a> Parser<'a> {
 
         while matches!(self.current_token, Token::Or) {
             let op = self.current_token.clone();
-            self.eat(op.clone());
+            self.eat(op.clone())?;
             let rhs = self.term()?;
             result = match op {
                 Token::Or => SearchQuery::Or(Box::new((result, rhs))),
@@ -129,7 +129,7 @@ impl<'a> Parser<'a> {
 
         while matches!(self.current_token, Token::And) {
             let op = self.current_token.clone();
-            self.eat(op.clone());
+            self.eat(op.clone())?;
             let rhs = self.factor()?;
             result = match op {
                 Token::And => SearchQuery::And(Box::new((result, rhs))),
@@ -143,13 +143,13 @@ impl<'a> Parser<'a> {
     fn factor(&mut self) -> Result<SearchQuery> {
         match self.current_token.clone() {
             Token::Word(value) => {
-                self.eat(Token::Word(value.clone()));
+                self.eat(Token::Word(value.clone()))?;
                 Ok(SearchQuery::Word(value))
             }
             Token::LParen => {
-                self.eat(Token::LParen);
+                self.eat(Token::LParen)?;
                 let result = self.expr()?;
-                self.eat(Token::RParen);
+                self.eat(Token::RParen)?;
                 Ok(result)
             }
             _ => Err(anyhow!("Unexpected token: {:?}", self.current_token)),
