@@ -41,11 +41,11 @@ impl<'a> Lexer<'a> {
             }
 
             return match current_char {
-                '|' => {
+                '|' | '/' => {
                     self.pos += 1;
                     Ok(Token::Or)
                 }
-                '&' => {
+                '&' | '+' => {
                     self.pos += 1;
                     Ok(Token::And)
                 }
