@@ -1,5 +1,3 @@
-import pickle
-
 DICT_PATH = "data/dict.opcorpora.txt"
 OUTPUT_PATH = "data/lemmatization-ru.tsv"
 
@@ -20,4 +18,4 @@ if __name__ == "__main__":
                 if not current_normal_form:
                     current_normal_form = line
                 else:
-                    file.write(f"{line}\t{current_normal_form}\n")
+                    output_file.write(f"{line}\t{current_normal_form}\n")
