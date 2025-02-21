@@ -1,4 +1,5 @@
 # Chat Searcher
+## Usage
 
 1. [Export](https://telegram.org/blog/export-and-more) a telegram **chat** in a JSON format
 2. Upload the `result.json` file (the website runs in the browser and no data is saved)
@@ -15,6 +16,22 @@ UI looks like this:
 ![ui example](assets/example.jpg)
 
 ![wasm offer](assets/wasm-offer.jpg)
+
+
+## Building
+
+1. [Install wasm-pack](https://rustwasm.github.io/wasm-pack/installer)
+2. [Install Node](https://nodejs.org/en)
+3. Build the wasm package
+```sh
+wasm-pack build
+```
+4. Run the website
+```sh
+cd www
+npm install
+npm run start
+```
 
 
 ## License
