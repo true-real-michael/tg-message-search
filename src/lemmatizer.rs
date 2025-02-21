@@ -17,11 +17,10 @@ impl Lemmatizer {
         let dict: HashMap<String, String> = data
             .split('\n')
             .filter(|line| !line.is_empty())
-            .map(|line| {
-                let mut parts = line.splitn(2, '\t');
-                let word = parts.next().unwrap().to_string();
+            .flat_map(|line| {
+                let mut parts = line.split('\t');
                 let lemma = parts.next().unwrap().to_string();
-                (word, lemma)
+                parts.map(String::from).zip(std::iter::repeat(lemma))
             })
             .collect();
         Self { dict }
