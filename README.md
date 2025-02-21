@@ -22,11 +22,12 @@ UI looks like this:
 
 1. [Install wasm-pack](https://rustwasm.github.io/wasm-pack/installer)
 2. [Install Node](https://nodejs.org/en)
-3. Build the wasm package
+3. Download the `lemmatization-ru.tsv.gz` file from releases and place it under the `/data` directory. Alternatively, download the morphological dictionary from [OpenCorpora's website](https://opencorpora.org/?page=downloads), place it under `/data` and run the `scripts/preprocess_opcorpora.py` script
+4. Build the wasm package
 ```sh
 wasm-pack build
 ```
-4. Run the website
+5. Run the website
 ```sh
 cd www
 npm install
