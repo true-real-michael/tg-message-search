@@ -94,8 +94,7 @@ impl Searcher {
                 for text_entity in &messages[*message_id].text_entities {
                     if let TextEntity::Lemmatizable(text) = text_entity {
                         text.to_lowercase()
-                            .replace(|c: char| !c.is_alphanumeric(), " ")
-                            .split_whitespace()
+                            .split(|c: char| !c.is_alphanumeric())
                             .filter(|word| word.len() > 3)
                             .map(|word| self.lemmatizer.lemmatize(word))
                             .for_each(|word| {
