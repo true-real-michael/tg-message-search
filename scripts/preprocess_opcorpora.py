@@ -1,5 +1,5 @@
 DICT_PATH = "data/dict.opcorpora.txt"
-OUTPUT_PATH = "data/lemmatization-ru-ids.tsv"
+OUTPUT_PATH = "data/lemmatization-ru.tsv"
 
 
 if __name__ == "__main__":
