@@ -41,7 +41,10 @@ where
 
         match which {
             Some(Ordering::Less) => self.left.next(),
-            Some(Ordering::Equal) => { self.left.next(); self.right.next() },
+            Some(Ordering::Equal) => {
+                self.left.next();
+                self.right.next()
+            }
             Some(Ordering::Greater) => self.right.next(),
             None => None,
         }
