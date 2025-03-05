@@ -7,11 +7,6 @@ use crate::components::file_input::FileInput;
 use crate::{analysis::Searcher, components::search::Search};
 use std::sync::{Arc, Mutex};
 
-async fn load_lemmatizer() -> Arc<Mutex<Lemmatizer>> {
-    log!("Loading lemmatizer...");
-    Arc::new(Mutex::new(Lemmatizer::new()))
-}
-
 async fn load_searcher(
     lemmatizer: Arc<Mutex<Lemmatizer>>,
     input_data: String,
@@ -27,7 +22,6 @@ async fn load_result_threads(
     search_query: String,
 ) -> Vec<ThreadSearchResult> {
     log!("Searching for threads...");
-    // let searcher = searcher.read().as_deref();
     if let Some(searcher) = searcher {
         searcher
             .lock()
@@ -46,16 +40,16 @@ pub fn Home() -> impl IntoView {
     let lemmatizer = Arc::new(Mutex::new(Lemmatizer::new()));
 
     let searcher = LocalResource::new(move || {
-        load_searcher(lemmatizer.clone(), messages_json.get().unwrap_or_default())
+        let lemmatizer = lemmatizer.clone();
+        let messages_json = messages_json.get().unwrap_or_default();
+        async move { load_searcher(lemmatizer, messages_json).await }
     });
 
-    // let result_threads = LocalResource::new(move || async {
-    //     load_result_threads(
-    //         searcher.read().as_deref().flatten().cloned(),
-    //         search_query.get().clone(),
-    //     )
-    //     .await
-    // });
+    let result_threads = LocalResource::new(move || {
+        let searcher = searcher.read().as_deref().flatten().cloned();
+        let search_query = search_query.get().clone();
+        async move { load_result_threads(searcher, search_query).await }
+    });
 
     view! {
         <FileInput set_input_data=set_messages_json />
