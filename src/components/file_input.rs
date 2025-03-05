@@ -23,27 +23,30 @@ pub fn FileInput(set_input_data: WriteSignal<Option<String>>) -> impl IntoView {
     let file_input: NodeRef<Input> = NodeRef::new();
 
     view! {
-        <div class="flex items-center justify-center w-1/4 h-1/4">
-            <button
-                class="w-full h-full bg-sky-400/25 border border-sky-800 p-4 rounded-lg flex items-center justify-center text-center hover:bg-sky-400/50 transition-colors"
-                on:click=move |_| {
-                    file_input.get().unwrap().click();
-                }
-            >
-                "Upload File"
-            </button>
-            <input
-                type="file"
-                node_ref=file_input
-                class="hidden"
-                on:change=move |e| {
-                    let file_input_value = file_input.get();
-                    spawn_local(async move {
-                        let content = print_file_content(file_input_value).await;
-                        set_input_data.set(content);
-                    })
-                }
-            />
+        // Wrapper div to center the component
+        <div class="flex items-center justify-center">
+            <div class="w-1/4 h-1/4">
+                <button
+                    class="w-full h-full bg-sky-400/25 border border-sky-600 p-4 rounded-lg flex items-center justify-center text-center hover:bg-sky-400/50 transition-colors"
+                    on:click=move |_| {
+                        file_input.get().unwrap().click();
+                    }
+                >
+                    "Upload File"
+                </button>
+                <input
+                    type="file"
+                    node_ref=file_input
+                    class="hidden"
+                    on:change=move |e| {
+                        let file_input_value = file_input.get();
+                        spawn_local(async move {
+                            let content = print_file_content(file_input_value).await;
+                            set_input_data.set(content);
+                        })
+                    }
+                />
+            </div>
         </div>
     }
 }
