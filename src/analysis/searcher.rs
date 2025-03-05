@@ -9,20 +9,11 @@ use std::sync::{Arc, Mutex};
 use wasm_bindgen::prelude::*;
 
 #[derive(Clone)]
-#[wasm_bindgen]
 pub struct ThreadSearchResult {
     pub thread_id: u32,
     pub score: u32,
-    title_text: String,
+    pub title_text: String,
     pub date_unixtime: u32,
-}
-
-#[wasm_bindgen]
-impl ThreadSearchResult {
-    #[wasm_bindgen(getter)]
-    pub fn title_text(&self) -> String {
-        self.title_text.clone()
-    }
 }
 
 #[derive(Clone)]

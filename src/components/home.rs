@@ -1,9 +1,9 @@
-use anyhow::Ok;
 use leptos::logging::log;
 use leptos::prelude::*;
 
 use crate::analysis::{Lemmatizer, ThreadSearchResult};
 use crate::components::file_input::FileInput;
+use crate::components::thread_list::ThreadList;
 use crate::{analysis::Searcher, components::search::Search};
 use std::sync::{Arc, Mutex};
 
@@ -62,5 +62,17 @@ pub fn Home() -> impl IntoView {
                 })
             }}
         </Suspense>
+
+        <Suspense fallback=move || view! { <p>Loading...</p> }>
+            {move || {
+                result_threads.read().as_ref().map(|result_threads| {
+                    view! {
+                        <ThreadList threads=result_threads.to_vec() />
+                    }
+                })
+            }}
+        </Suspense>
+
+
     }
 }
