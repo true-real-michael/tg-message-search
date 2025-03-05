@@ -1,4 +1,4 @@
-use crate::components::Home;
+use crate::pages::home::Home;
 use leptos::prelude::*;
 
 /// Default Home Page
