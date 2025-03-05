@@ -37,7 +37,7 @@ async fn load_result_threads(
 pub fn Home() -> impl IntoView {
     let (messages_json, set_messages_json) = signal(None::<String>);
     let (search_query, set_search_query) = signal(String::new());
-    let lemmatizer = Arc::new(Mutex::new(Lemmatizer::new()));
+    let lemmatizer = Arc::new(Mutex::new(Lemmatizer::default()));
 
     let searcher = LocalResource::new(move || {
         let lemmatizer = lemmatizer.clone();
@@ -52,7 +52,7 @@ pub fn Home() -> impl IntoView {
     });
 
     view! {
-        <div class="bg-gray-100 container mx-auto p-4">
+        <div class="bg-gray-900/40 container mx-auto p-4">
             <FileInput set_input_data=set_messages_json />
             <Suspense fallback=move || view! { <p>Loading...</p> }>
                 {move || {
