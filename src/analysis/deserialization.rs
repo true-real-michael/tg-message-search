@@ -62,8 +62,8 @@ impl From<Message> for String {
     }
 }
 
-pub fn deserialize_messages(json: &str) -> Result<Vec<Message>, anyhow::Error> {
-    let chat: Chat = serde_json::from_str(json)?;
+pub fn deserialize_messages(json: String) -> Result<Vec<Message>, anyhow::Error> {
+    let chat: Chat = serde_json::from_str(&json)?;
     let mut pruned_ids = HashMap::new();
     let mut messages = chat
         .messages
