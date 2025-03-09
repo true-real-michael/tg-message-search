@@ -12,6 +12,7 @@ pub fn Search(searcher: LocalResource<Option<Arc<Mutex<Searcher>>>>) -> impl Int
     let (selected_thread_id, set_selected_thread_id) = signal(None::<u32>);
 
     let result_threads = Memo::new(move |_| {
+        log!("Searching for threads...");
         if let Some(searcher) = searcher.read().as_deref() {
             searcher
                 .as_ref()
@@ -26,6 +27,7 @@ pub fn Search(searcher: LocalResource<Option<Arc<Mutex<Searcher>>>>) -> impl Int
     });
 
     let result_messages = Memo::new(move |_| {
+        log!("Retrieving messages...");
         let selected_thread_id = selected_thread_id.get();
         if let Some(selected_thread_id) = selected_thread_id {
             if let Some(searcher) = searcher.read().as_deref() {
