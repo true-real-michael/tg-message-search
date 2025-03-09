@@ -53,11 +53,15 @@ pub fn Search(searcher: LocalResource<Option<Arc<Mutex<Searcher>>>>) -> impl Int
     view! {
         <SearchBar set_search_query=set_search_query />
         <div class="grid grid-cols-2 gap-8 h-[calc(100vh-102px)]">
-            <ThreadList 
-                threads=result_threads 
-                set_selected_thread_id=set_selected_thread_id 
-            />
-            <MessageList messages=result_messages />
+            <div class="overflow-y-auto">
+                <ThreadList
+                    threads=result_threads
+                    set_selected_thread_id=set_selected_thread_id
+                />
+            </div>
+            <div class="overflow-y-auto">
+                <MessageList messages=result_messages />
+            </div>
         </div>
     }
 }
@@ -70,7 +74,7 @@ pub fn ThreadList(
     view! {
         <ul>
             {move || {
-                threads.with(|threads| { 
+                threads.with(|threads| {
                     threads.clone().into_iter().map(|thread| {
                         view! {
                             <li class="p-2 hover:bg-gray-700 cursor-pointer" data-id={thread.thread_id} on:click=move |_| set_selected_thread_id.set(Some(thread.thread_id))>
@@ -108,7 +112,7 @@ pub fn MessageList(messages: Memo<Vec<MessageResult>>) -> impl IntoView {
                                 </div>
                             </li>
                         }
-                    }).collect::<Vec<_>>()  
+                    }).collect::<Vec<_>>()
                 })
             }}
         </ul>
