@@ -1,58 +1,122 @@
+use leptos::logging::log;
+use std::sync::{Arc, Mutex};
+
+use crate::analysis::Searcher;
 use crate::analysis::{MessageResult, ThreadSearchResult};
 use leptos::html;
 use leptos::prelude::*;
 
+fn load_result_threads(
+    searcher: Arc<Mutex<Searcher>>,
+    search_query: String,
+) -> Vec<ThreadSearchResult> {
+    log!("Searching for threads...");
+    searcher
+        .lock()
+        .unwrap()
+        .find_threads(search_query)
+        .unwrap_or_default()
+}
+
+#[component]
+pub fn Search(searcher: LocalResource<Option<Arc<Mutex<Searcher>>>>) -> impl IntoView {
+    let (search_query, set_search_query) = signal(String::new());
+    let (selected_thread_id, set_selected_thread_id) = signal(None::<u32>);
+
+    let result_threads = Memo::new(move |_| {
+        if let Some(searcher) = searcher.read().as_deref() {
+            let search_query = search_query.get().clone();
+            load_result_threads(searcher.as_ref().unwrap().to_owned(), search_query)
+        } else {
+            Vec::new()
+        }
+    });
+
+    let result_messages = Memo::new(move |_| {
+        let selected_thread_id = selected_thread_id.get();
+        if let Some(selected_thread_id) = selected_thread_id {
+            if let Some(searcher) = searcher.read().as_deref() {
+                searcher
+                    .as_ref()
+                    .unwrap()
+                    .lock()
+                    .unwrap()
+                    .get_thread_messages(selected_thread_id as usize)
+            } else {
+                Vec::new()
+            }
+        } else {
+            Vec::new()
+        }
+    });
+
+    view! {
+        <SearchBar set_search_query=set_search_query />
+        <div class="grid grid-cols-2 gap-8 h-[calc(100vh-102px)]">
+            <ThreadList 
+                threads=result_threads 
+                set_selected_thread_id=set_selected_thread_id 
+            />
+            <MessageList messages=result_messages />
+        </div>
+    }
+}
+
 #[component]
 pub fn ThreadList(
-    threads: Vec<ThreadSearchResult>,
+    threads: Memo<Vec<ThreadSearchResult>>,
     set_selected_thread_id: WriteSignal<Option<u32>>,
 ) -> impl IntoView {
     view! {
         <ul>
             {move || {
-                threads.clone().into_iter().map(|thread| {
-                    view! {
-                        <li class="p-2 hover:bg-gray-700 cursor-pointer" data-id={thread.thread_id} on:click=move |_| set_selected_thread_id.set(Some(thread.thread_id))>
-                            <div class="flex justify-between items-center">
-                                <span class="truncate">{thread.title_text.clone()}</span>
-                                <span class="text-sm ml-2 whitespace-nowrap">{thread.date_unixtime}</span>
-                            </div>
-                        </li>
-                    }
-                }).collect::<Vec<_>>()
+                threads.with(|threads| { 
+                    threads.clone().into_iter().map(|thread| {
+                        view! {
+                            <li class="p-2 hover:bg-gray-700 cursor-pointer" data-id={thread.thread_id} on:click=move |_| set_selected_thread_id.set(Some(thread.thread_id))>
+                                <div class="flex justify-between items-center">
+                                    <span class="truncate">{thread.title_text.clone()}</span>
+                                    <span class="text-sm ml-2 whitespace-nowrap">{thread.date_unixtime}</span>
+                                </div>
+                            </li>
+                        }
+                    }).collect::<Vec<_>>()
+                })
             }}
         </ul>
     }
 }
 
 #[component]
-pub fn MessageList(messages: Vec<MessageResult>) -> impl IntoView {
+pub fn MessageList(messages: Memo<Vec<MessageResult>>) -> impl IntoView {
     view! {
         <ul>
             {move || {
-                messages.clone().into_iter().map(|message| {
-                    let reply_text = message.reply_to_text.clone();
-                    let message_text = message.text.clone();
-                    view! {
-                        <li class="p-2">
-                            <div class="bg-sky-400/25 border-sky-700/40 border rounded p-2 m-2">
-                                <Show when=move || {message.reply_to_text.is_some()}>
-                                    <div class="truncate ml-2 bg-gray-900/40 rounded p-1">
-                                        {reply_text.clone()}
-                                    </div>
-                                </Show>
-                                {message_text.clone()}
-                            </div>
-                        </li>
-                    }
-                }).collect::<Vec<_>>()
+                messages.with(|messages| {
+                    messages.clone().into_iter().map(|message| {
+                        let reply_text = message.reply_to_text.clone();
+                        let message_text = message.text.clone();
+                        view! {
+                            <li class="p-2">
+                                <div class="bg-sky-400/25 border-sky-700/40 border rounded p-2 m-2">
+                                    <Show when=move || {message.reply_to_text.is_some()}>
+                                        <div class="truncate ml-2 bg-gray-900/40 rounded p-1">
+                                            {reply_text.clone()}
+                                        </div>
+                                    </Show>
+                                    {message_text.clone()}
+                                </div>
+                            </li>
+                        }
+                    }).collect::<Vec<_>>()  
+                })
             }}
         </ul>
     }
 }
 
 #[component]
-pub fn Search(set_search_query: WriteSignal<String>) -> impl IntoView {
+pub fn SearchBar(set_search_query: WriteSignal<String>) -> impl IntoView {
     let input_element: NodeRef<html::Input> = NodeRef::new();
     view! {
             <form on:submit= move |e| {

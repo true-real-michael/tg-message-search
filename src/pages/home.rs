@@ -2,10 +2,9 @@ use leptos::either::Either;
 use leptos::logging::log;
 use leptos::prelude::*;
 
-use crate::analysis::Searcher;
-use crate::analysis::{Lemmatizer, ThreadSearchResult};
+use crate::analysis::{Searcher, Lemmatizer};
 use crate::components::file_input::FileInput;
-use crate::components::search::{MessageList, Search, ThreadList};
+use crate::components::search::Search;
 use std::sync::{Arc, Mutex};
 
 async fn load_searcher(
@@ -13,69 +12,21 @@ async fn load_searcher(
     input_data: Option<String>,
 ) -> Option<Arc<Mutex<Searcher>>> {
     log!("Initializing searcher...");
-    if let Some(input_data) = input_data {
-        let lemmatizer = lemmatizer.clone();
-        Some(Arc::new(Mutex::new(
-            Searcher::new(lemmatizer, input_data).ok()?,
-        )))
-    } else {
-        None
-    }
-}
-
-async fn load_result_threads(
-    searcher: Option<Arc<Mutex<Searcher>>>,
-    search_query: String,
-) -> Vec<ThreadSearchResult> {
-    log!("Searching for threads...");
-    if let Some(searcher) = searcher {
-        searcher
-            .lock()
-            .unwrap()
-            .find_threads(search_query)
-            .unwrap_or_default()
-    } else {
-        Vec::new()
-    }
+    let lemmatizer = lemmatizer.clone();
+    Some(Arc::new(Mutex::new(
+        Searcher::new(lemmatizer, input_data?).ok()?,
+    )))
 }
 
 #[component]
 pub fn Home() -> impl IntoView {
     let (messages_json, set_messages_json) = signal(None::<String>);
-    let (search_query, set_search_query) = signal(String::new());
-    let (selected_thread_id, set_selected_thread_id) = signal(None::<u32>);
     let lemmatizer = Arc::new(Mutex::new(Lemmatizer::new()));
 
     let searcher = LocalResource::new(move || {
         let lemmatizer = lemmatizer.clone();
         let messages_json = messages_json.get().clone();
         async move { load_searcher(lemmatizer, messages_json).await }
-    });
-
-    let result_threads = LocalResource::new(move || {
-        let searcher = searcher.read().as_deref().flatten().cloned();
-        let search_query = search_query.get().clone();
-        async move { load_result_threads(searcher, search_query).await }
-    });
-
-    let result_messages = LocalResource::new(move || {
-        let searcher = searcher.read().as_deref().flatten().cloned();
-        let selected_thread_id = selected_thread_id.get();
-        async move {
-            if let Some(selected_thread_id) = selected_thread_id {
-                searcher
-                    .map(|s| {
-                        s.lock()
-                            .unwrap()
-                            .get_thread_messages(selected_thread_id as usize)
-                    })
-                    .into_iter()
-                    .flatten()
-                    .collect()
-            } else {
-                Vec::new()
-            }
-        }
     });
 
     view! {
@@ -87,12 +38,11 @@ pub fn Home() -> impl IntoView {
                     })
                 } else {
                     Either::Right(view! {
-                        <Search set_search_query=set_search_query />
-
-                        <div class="grid grid-cols-2 gap-8 h-[calc(100vh-102px)]">
-                            <ThreadList threads=result_threads.get().map_or_else(Vec::default, |t| t.to_vec()) set_selected_thread_id=set_selected_thread_id />
-                            <MessageList messages=result_messages.get().map_or_else(Vec::default, |m| m.to_vec()) />
-                        </div>
+                        <Show when=move || {
+                            searcher.read().as_deref().flatten().cloned().is_some()
+                        }>
+                            <Search searcher=searcher />
+                        </Show>
                     })
                 }
             }}

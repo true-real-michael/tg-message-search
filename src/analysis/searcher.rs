@@ -7,7 +7,7 @@ use crate::analysis::utils;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct ThreadSearchResult {
     pub thread_id: u32,
     pub score: u32,
@@ -15,7 +15,7 @@ pub struct ThreadSearchResult {
     pub date_unixtime: u32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct MessageResult {
     pub message_id: usize,
     pub text: String,
