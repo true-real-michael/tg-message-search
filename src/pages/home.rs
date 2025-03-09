@@ -60,7 +60,7 @@ pub fn Home() -> impl IntoView {
 
     let result_messages = LocalResource::new(move || {
         let searcher = searcher.read().as_deref().flatten().cloned();
-        let selected_thread_id = selected_thread_id.get().clone();
+        let selected_thread_id = selected_thread_id.get();
         async move {
             if let Some(selected_thread_id) = selected_thread_id {
                 searcher
@@ -87,7 +87,7 @@ pub fn Home() -> impl IntoView {
                     })
                 } else {
                     Either::Right(view! {
-                        <Search set_search_query=set_search_query.clone() />
+                        <Search set_search_query=set_search_query />
 
                         <div class="grid grid-cols-2 gap-8 h-[calc(100vh-102px)]">
                             <ThreadList threads=result_threads.get().map_or_else(Vec::default, |t| t.to_vec()) set_selected_thread_id=set_selected_thread_id />

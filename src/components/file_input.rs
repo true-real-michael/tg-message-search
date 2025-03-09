@@ -38,7 +38,7 @@ pub fn FileInput(set_input_data: WriteSignal<Option<String>>) -> impl IntoView {
                     type="file"
                     node_ref=file_input
                     class="hidden"
-                    on:change=move |e| {
+                    on:change=move |_| {
                         let file_input_value = file_input.get();
                         spawn_local(async move {
                             let content = print_file_content(file_input_value).await;
