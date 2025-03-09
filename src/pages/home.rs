@@ -4,7 +4,7 @@ use leptos::prelude::*;
 
 use crate::analysis::{Lemmatizer, ThreadSearchResult};
 use crate::components::file_input::FileInput;
-use crate::components::thread_list::ThreadList;
+use crate::components::thread_list::{MessageList, ThreadList};
 use crate::{analysis::Searcher, components::search::Search};
 use std::sync::{Arc, Mutex};
 
@@ -58,6 +58,22 @@ pub fn Home() -> impl IntoView {
         async move { load_result_threads(searcher, search_query).await }
     });
 
+    let result_messages = LocalResource::new(move || {
+        let searcher = searcher.read().as_deref().flatten().cloned();
+        let selected_thread_id = selected_thread_id.get().clone();
+        async move {
+            if let Some(selected_thread_id) = selected_thread_id {
+                searcher
+                    .map(|s| s.lock().unwrap().get_thread_messages(selected_thread_id as usize))
+                    .into_iter()
+                    .flatten()
+                    .collect()
+            } else {
+                Vec::new()
+            }
+        }
+    });
+
     view! {
         <div class="bg-gray-900/40 container mx-auto p-4">
             {move || {
@@ -71,6 +87,7 @@ pub fn Home() -> impl IntoView {
 
                         <div class="grid grid-cols-2 gap-8 h-[calc(100vh-102px)]">
                             <ThreadList threads=result_threads.get().map_or_else(Vec::default, |t| t.to_vec()) set_selected_thread_id=set_selected_thread_id />
+                            <MessageList messages=result_messages.get().map_or_else(Vec::default, |m| m.to_vec()) />
                         </div>
                     })
                 }

@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-use crate::analysis::ThreadSearchResult;
+use crate::analysis::{MessageResult, ThreadSearchResult};
 
 #[component]
 pub fn ThreadList(
@@ -16,6 +16,27 @@ pub fn ThreadList(
                             <div class="flex justify-between items-center">
                                 <span class="truncate">{thread.title_text.clone()}</span>
                                 <span class="text-sm ml-2 whitespace-nowrap">{thread.date_unixtime}</span>
+                            </div>
+                        </li>
+                    }
+                }).collect::<Vec<_>>()
+            }}
+        </ul>
+    }
+}
+
+#[component]
+pub fn MessageList(
+    messages: Vec<MessageResult>,
+) -> impl IntoView {
+    view! {
+        <ul>
+            {move || {
+                messages.clone().into_iter().map(|message| {
+                    view! {
+                        <li class="p-2">
+                            <div class="flex justify-between items-center">
+                                <span class="truncate">{message.text.clone()}</span>
                             </div>
                         </li>
                     }

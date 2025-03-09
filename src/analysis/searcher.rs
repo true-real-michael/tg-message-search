@@ -17,27 +17,12 @@ pub struct ThreadSearchResult {
 }
 
 #[derive(Clone)]
-#[wasm_bindgen]
 pub struct MessageResult {
     pub message_id: usize,
-    text: String,
-    reply_to_text: Option<String>,
+    pub text: String,
+    pub reply_to_text: Option<String>,
 }
 
-#[wasm_bindgen]
-impl MessageResult {
-    #[wasm_bindgen(getter)]
-    pub fn text(&self) -> String {
-        self.text.clone()
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn reply_to_text(&self) -> Option<String> {
-        self.reply_to_text.clone()
-    }
-}
-
-#[wasm_bindgen]
 pub struct Searcher {
     messages: Vec<Message>,
     threads: Vec<Vec<usize>>,
