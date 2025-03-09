@@ -6,18 +6,6 @@ use crate::analysis::{MessageResult, ThreadSearchResult};
 use leptos::html;
 use leptos::prelude::*;
 
-fn load_result_threads(
-    searcher: Arc<Mutex<Searcher>>,
-    search_query: String,
-) -> Vec<ThreadSearchResult> {
-    log!("Searching for threads...");
-    searcher
-        .lock()
-        .unwrap()
-        .find_threads(search_query)
-        .unwrap_or_default()
-}
-
 #[component]
 pub fn Search(searcher: LocalResource<Option<Arc<Mutex<Searcher>>>>) -> impl IntoView {
     let (search_query, set_search_query) = signal(String::new());
@@ -25,8 +13,13 @@ pub fn Search(searcher: LocalResource<Option<Arc<Mutex<Searcher>>>>) -> impl Int
 
     let result_threads = Memo::new(move |_| {
         if let Some(searcher) = searcher.read().as_deref() {
-            let search_query = search_query.get().clone();
-            load_result_threads(searcher.as_ref().unwrap().to_owned(), search_query)
+            searcher
+                .as_ref()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .find_threads(search_query.get().clone())
+                .unwrap_or_default()
         } else {
             Vec::new()
         }
