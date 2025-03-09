@@ -2,10 +2,10 @@ use leptos::either::Either;
 use leptos::logging::log;
 use leptos::prelude::*;
 
+use crate::analysis::Searcher;
 use crate::analysis::{Lemmatizer, ThreadSearchResult};
 use crate::components::file_input::FileInput;
-use crate::components::thread_list::{MessageList, ThreadList};
-use crate::{analysis::Searcher, components::search::Search};
+use crate::components::search::{MessageList, Search, ThreadList};
 use std::sync::{Arc, Mutex};
 
 async fn load_searcher(
@@ -44,7 +44,7 @@ pub fn Home() -> impl IntoView {
     let (messages_json, set_messages_json) = signal(None::<String>);
     let (search_query, set_search_query) = signal(String::new());
     let (selected_thread_id, set_selected_thread_id) = signal(None::<u32>);
-    let lemmatizer = Arc::new(Mutex::new(Lemmatizer::default()));
+    let lemmatizer = Arc::new(Mutex::new(Lemmatizer::new()));
 
     let searcher = LocalResource::new(move || {
         let lemmatizer = lemmatizer.clone();
@@ -64,7 +64,11 @@ pub fn Home() -> impl IntoView {
         async move {
             if let Some(selected_thread_id) = selected_thread_id {
                 searcher
-                    .map(|s| s.lock().unwrap().get_thread_messages(selected_thread_id as usize))
+                    .map(|s| {
+                        s.lock()
+                            .unwrap()
+                            .get_thread_messages(selected_thread_id as usize)
+                    })
                     .into_iter()
                     .flatten()
                     .collect()

@@ -6,7 +6,6 @@ use crate::analysis::thread_dsu::ThreadDSU;
 use crate::analysis::utils;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
-use wasm_bindgen::prelude::*;
 
 #[derive(Clone)]
 pub struct ThreadSearchResult {
