@@ -11,7 +11,7 @@ pub fn Search(set_search_query: WriteSignal<String>) -> impl IntoView {
                 set_search_query.set(value);
             }>
                 <div class="mb-6 flex">
-                        <input type="text" placeholder="search" class="w-full p-2 border border-gray-300 rounded" node_ref=input_element />
+                        <input type="text" placeholder="search" class="w-full bg-gray-700 p-2 border border-gray-300 rounded" node_ref=input_element />
                         <input type="submit" value="Search" class="ml-2 p-2 border bg-sky-400/25 border-sky-600 rounded" />
                 </div>
             </form>

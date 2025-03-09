@@ -1,3 +1,4 @@
+use leptos::either::Either;
 use leptos::logging::log;
 use leptos::prelude::*;
 
@@ -9,12 +10,17 @@ use std::sync::{Arc, Mutex};
 
 async fn load_searcher(
     lemmatizer: Arc<Mutex<Lemmatizer>>,
-    input_data: String,
+    input_data: Option<String>,
 ) -> Option<Arc<Mutex<Searcher>>> {
     log!("Initializing searcher...");
-    Searcher::new(lemmatizer, input_data)
-        .map(|searcher| Arc::new(Mutex::new(searcher)))
-        .ok()
+    if let Some(input_data) = input_data {
+        let lemmatizer = lemmatizer.clone();
+        Some(Arc::new(Mutex::new(
+            Searcher::new(lemmatizer, input_data).ok()?,
+        )))
+    } else {
+        None
+    }
 }
 
 async fn load_result_threads(
@@ -37,11 +43,12 @@ async fn load_result_threads(
 pub fn Home() -> impl IntoView {
     let (messages_json, set_messages_json) = signal(None::<String>);
     let (search_query, set_search_query) = signal(String::new());
+    let (selected_thread_id, set_selected_thread_id) = signal(None::<u32>);
     let lemmatizer = Arc::new(Mutex::new(Lemmatizer::default()));
 
     let searcher = LocalResource::new(move || {
         let lemmatizer = lemmatizer.clone();
-        let messages_json = messages_json.get().unwrap_or_default();
+        let messages_json = messages_json.get().clone();
         async move { load_searcher(lemmatizer, messages_json).await }
     });
 
@@ -53,37 +60,21 @@ pub fn Home() -> impl IntoView {
 
     view! {
         <div class="bg-gray-900/40 container mx-auto p-4">
-            <FileInput set_input_data=set_messages_json />
-            <Suspense fallback=move || view! { <p>Loading...</p> }>
-                {move || {
-                    searcher.read().as_ref().map(|searcher| {
-                        view! {
-                            <Search set_search_query=set_search_query.clone() />
-                        }
+            {move || {
+                if searcher.read().as_ref().map_or(true, |s| s.is_none()) {
+                    Either::Left(view! {
+                        <FileInput set_input_data=set_messages_json />
                     })
-                }}
-            </Suspense>
+                } else {
+                    Either::Right(view! {
+                        <Search set_search_query=set_search_query.clone() />
 
-            <div class="grid grid-cols-2 gap-8 h-[calc(100vh-102px)]">
-                <Suspense fallback=move || view! { <p>Loading...</p> }>
-                    {move || {
-                        result_threads.read().as_ref().map(|result_threads| {
-                            view! {
-                                <ThreadList threads=result_threads.to_vec() />
-                            }
-                        })
-                    }}
-                </Suspense>
-                <Suspense fallback=move || view! { <p>Loading...</p> }>
-                    {move || {
-                        result_threads.read().as_ref().map(|result_threads| {
-                            view! {
-                                <ThreadList threads=result_threads.to_vec() />
-                            }
-                        })
-                    }}
-                </Suspense>
-            </div>
+                        <div class="grid grid-cols-2 gap-8 h-[calc(100vh-102px)]">
+                            <ThreadList threads=result_threads.get().map_or_else(Vec::default, |t| t.to_vec()) set_selected_thread_id=set_selected_thread_id />
+                        </div>
+                    })
+                }
+            }}
         </div>
     }
 }
