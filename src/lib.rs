@@ -20,7 +20,7 @@ pub fn App() -> impl IntoView {
         <Html attr:lang="en" attr:dir="ltr" attr:data-theme="light" />
 
         // sets the document title
-        <Title text="Welcome to Leptos CSR" />
+        <Title text="Chat Searcher" />
 
         // injects metadata in the <head> of the page
         <Meta charset="UTF-8" />
@@ -28,7 +28,7 @@ pub fn App() -> impl IntoView {
 
         <Router>
             <Routes fallback=|| view! { NotFound }>
-                <Route path=path!("/") view=AppPage />
+                <Route path=path!("/wasm-chat-searcher") view=AppPage />
             </Routes>
         </Router>
     }
