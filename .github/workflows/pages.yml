@@ -1,6 +1,9 @@
 name: Deploy to GitHub Pages
 
-on: workflow_dispatch
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -9,12 +12,18 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  build:
-    name: Build
+  Github-Pages-Release:
+    timeout-minutes: 10
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,43 +35,37 @@ jobs:
           fileName: lemmatization-ru.tsv.gz
           out-file-path: data
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@1.81.0
-        
-      - name: Install Node.js
-        uses: actions/setup-node@v4
+      - name: Install nightly Rust
+        uses: dtolnay/rust-toolchain@nightly
         with:
-          node-version: 23
+          components: clippy, rustfmt
 
-      - name: Install wasm-pack (npm)
-        run: npm install -g wasm-pack
+      - name: Add WASM target
+        run: rustup target add wasm32-unknown-unknown
 
-      - name: Build WASM Package
-        run: wasm-pack build
+      - name: lint
+        run: cargo clippy & cargo fmt
 
-      - name: Install npm dependencies
-        working-directory: www
-        run: npm install
+      # - name: Download and install tailwindcss binary
+      # run: npm install -D tailwindcss && npx tailwindcss -i public/tailwind.css -o <OUTPUT/PATH.css>  # run tailwind
+      #
+      - name: Download and install Trunk binary
+        run: wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.4/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
 
-      - name: Build JavaScript with Webpack
-        working-directory: www
-        run: npm run build
+      - name: Build with Trunk
+        run: ./trunk build --release --public-url "${GITHUB_REPOSITORY#*/}"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+        with:
+          enablement: true
+          # token:
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: www/dist
+          path: "./dist"
 
-  deploy:
-    needs: build
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages 🚀
         id: deployment
         uses: actions/deploy-pages@v4
