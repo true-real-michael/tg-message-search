@@ -2,7 +2,7 @@ use flate2::read::GzDecoder;
 use std::collections::HashMap;
 use std::io::prelude::Read;
 
-const DICTIONARY_RAW: &[u8] = include_bytes!("../data/lemmatization-ru.tsv.gz");
+const DICTIONARY_RAW: &[u8] = include_bytes!("../../data/lemmatization-ru.tsv.gz");
 
 #[derive(Default)]
 pub struct Lemmatizer {

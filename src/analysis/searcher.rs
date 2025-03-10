@@ -1,79 +1,38 @@
-use crate::deserialization::{deserialize_messages, Message, TextEntity};
-use crate::lemmatizer::Lemmatizer;
-use crate::merge::{MergeAnd, MergeOr};
-use crate::query::{Lexer, Parser, SearchQuery};
-use crate::thread_dsu::ThreadDSU;
-use crate::utils;
+use crate::analysis::deserialization::{deserialize_messages, Message, TextEntity};
+use crate::analysis::lemmatizer::Lemmatizer;
+use crate::analysis::merge::{MergeAnd, MergeOr};
+use crate::analysis::query::{Lexer, Parser, SearchQuery};
+use crate::analysis::thread_dsu::ThreadDSU;
+use crate::analysis::utils;
 use std::collections::{HashMap, HashSet};
-use wasm_bindgen::prelude::*;
+use std::sync::{Arc, Mutex};
 
-#[derive(Clone)]
-#[wasm_bindgen]
+#[derive(Clone, PartialEq, Eq)]
 pub struct ThreadSearchResult {
     pub thread_id: u32,
     pub score: u32,
-    title_text: String,
+    pub title_text: String,
     pub date_unixtime: u32,
 }
 
-#[wasm_bindgen]
-impl ThreadSearchResult {
-    #[wasm_bindgen(getter)]
-    pub fn title_text(&self) -> String {
-        self.title_text.clone()
-    }
-}
-
-#[derive(Clone)]
-#[wasm_bindgen]
+#[derive(Clone, PartialEq, Eq)]
 pub struct MessageResult {
     pub message_id: usize,
-    text: String,
-    reply_to_text: Option<String>,
+    pub text: String,
+    pub reply_to_text: Option<String>,
 }
 
-#[wasm_bindgen]
-impl MessageResult {
-    #[wasm_bindgen(getter)]
-    pub fn text(&self) -> String {
-        self.text.clone()
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn reply_to_text(&self) -> Option<String> {
-        self.reply_to_text.clone()
-    }
-}
-
-#[wasm_bindgen]
 pub struct Searcher {
     messages: Vec<Message>,
     threads: Vec<Vec<usize>>,
-    lemmatizer: Lemmatizer,
+    lemmatizer: Arc<Mutex<Lemmatizer>>,
     thread_index: HashMap<String, Vec<usize>>,
 }
 
-impl Default for Searcher {
-    fn default() -> Self {
-        utils::set_panic_hook();
-        Searcher {
-            messages: Vec::new(),
-            threads: Vec::new(),
-            lemmatizer: Lemmatizer::new(),
-            thread_index: HashMap::new(),
-        }
-    }
-}
-
-#[wasm_bindgen]
 impl Searcher {
-    pub fn new() -> Searcher {
-        Self::default()
-    }
-
-    pub fn set_data(&mut self, json: &str) -> Result<(), JsError> {
+    pub fn new(lemmatizer: Arc<Mutex<Lemmatizer>>, json: String) -> anyhow::Result<Searcher> {
         let mut thread_dsu = ThreadDSU::new();
-        let messages = deserialize_messages(json).map_err(|e| JsError::from(&*e))?;
+        let messages = deserialize_messages(json)?;
 
         for message in &messages {
             thread_dsu.make_set(message.id);
@@ -96,7 +55,7 @@ impl Searcher {
                         text.to_lowercase()
                             .split(|c: char| !c.is_alphanumeric())
                             .filter(|word| word.len() > 3)
-                            .map(|word| self.lemmatizer.lemmatize(word))
+                            .map(|word| lemmatizer.lock().unwrap().lemmatize(word))
                             .for_each(|word| {
                                 if !used_words.contains(&word) {
                                     thread_index
@@ -110,16 +69,18 @@ impl Searcher {
                 }
             }
         }
-
-        self.thread_index = thread_index;
-        self.messages = messages;
-        self.threads = threads;
-        Ok(())
+        Ok(Self {
+            messages,
+            threads,
+            lemmatizer,
+            thread_index,
+        })
     }
 
     fn find_threads_by_word(&self, word: String) -> Vec<usize> {
         utils::log!("find_threads_by_word({})", word);
         let word = word.to_lowercase();
+        let word = self.lemmatizer.lock().unwrap().lemmatize(&word);
         self.thread_index.get(&word).cloned().unwrap_or_default()
     }
 
@@ -141,11 +102,8 @@ impl Searcher {
         }
     }
 
-    pub fn find_threads(&self, query: &str) -> Result<Vec<ThreadSearchResult>, JsError> {
-        let query = Parser::new(Lexer::new(query))
-            .map_err(|e| JsError::from(&*e))?
-            .parse()
-            .map_err(|e| JsError::from(&*e))?;
+    pub fn find_threads(&self, query: String) -> anyhow::Result<Vec<ThreadSearchResult>> {
+        let query = Parser::new(Lexer::new(&query))?.parse()?;
 
         let mut result: Vec<ThreadSearchResult> = self
             .find_threads_by_query(query)

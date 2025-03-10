@@ -157,9 +157,7 @@ impl<'a> Parser<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::query::SearchQuery;
-
-    use super::{Lexer, Parser};
+    use super::{Lexer, Parser, SearchQuery};
 
     #[test]
     fn test_basic() {
