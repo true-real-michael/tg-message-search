@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::analysis::Searcher;
 use crate::analysis::{MessageResult, ThreadSearchResult};
+use chrono::DateTime;
 use leptos::html;
 use leptos::prelude::*;
 
@@ -71,11 +72,12 @@ pub fn ThreadList(
             {move || {
                 threads.with(|threads| {
                     threads.clone().into_iter().map(|thread| {
+                        let date = DateTime::from_timestamp(thread.date_unixtime as i64, 0).expect("Failed to parse date").format("%Y-%m").to_string();
                         view! {
                             <li class="p-2 hover:bg-gray-700 cursor-pointer" data-id={thread.thread_id} on:click=move |_| set_selected_thread_id.set(Some(thread.thread_id))>
                                 <div class="flex justify-between items-center">
                                     <span class="truncate">{thread.title_text.clone()}</span>
-                                    <span class="text-sm ml-2 whitespace-nowrap">{thread.date_unixtime}</span>
+                                    <span class="text-sm ml-2 whitespace-nowrap">{date}</span>
                                 </div>
                             </li>
                         }

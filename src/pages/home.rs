@@ -2,21 +2,10 @@ use leptos::either::Either;
 use leptos::logging::log;
 use leptos::prelude::*;
 
-use crate::analysis::{Searcher, Lemmatizer};
+use crate::analysis::{Lemmatizer, Searcher};
 use crate::components::file_input::FileInput;
 use crate::components::search::Search;
 use std::sync::{Arc, Mutex};
-
-async fn load_searcher(
-    lemmatizer: Arc<Mutex<Lemmatizer>>,
-    input_data: Option<String>,
-) -> Option<Arc<Mutex<Searcher>>> {
-    log!("Initializing searcher...");
-    let lemmatizer = lemmatizer.clone();
-    Some(Arc::new(Mutex::new(
-        Searcher::new(lemmatizer, input_data?).ok()?,
-    )))
-}
 
 #[component]
 pub fn Home() -> impl IntoView {
@@ -24,9 +13,14 @@ pub fn Home() -> impl IntoView {
     let lemmatizer = Arc::new(Mutex::new(Lemmatizer::new()));
 
     let searcher = LocalResource::new(move || {
-        let lemmatizer = lemmatizer.clone();
         let messages_json = messages_json.get().clone();
-        async move { load_searcher(lemmatizer, messages_json).await }
+        let lemmatizer = lemmatizer.clone();
+        async move {
+            log!("Initializing searcher...");
+            Some(Arc::new(Mutex::new(
+                Searcher::new(lemmatizer, messages_json?).ok()?,
+            )))
+        }
     });
 
     view! {
