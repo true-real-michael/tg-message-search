@@ -174,7 +174,7 @@ fn SearchBar(set_search_query: WriteSignal<String>) -> impl IntoView {
 #[component]
 fn Button(on_click: impl FnMut(MouseEvent) + 'static) -> impl IntoView {
     view! {
-        <button on:click=on_click class="w-full p-2 bg-sky-400/25 border-sky-700/40 border rounded hover:bg-sky-400/50 transition-colors">
+        <button on:click=on_click class="w-full p-2 bg-sky-400/25 border-sky-600 border rounded hover:bg-sky-400/50 transition-colors">
             { "More" }
         </button>
     }
