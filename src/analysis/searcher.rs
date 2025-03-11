@@ -7,7 +7,13 @@ use crate::analysis::utils;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Text {
+    Plain(String),
+    Highlight(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ThreadSearchResult {
     pub thread_id: u32,
     pub score: u32,
@@ -15,10 +21,10 @@ pub struct ThreadSearchResult {
     pub date_unixtime: u32,
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MessageResult {
     pub message_id: usize,
-    pub text: String,
+    pub text: Vec<Text>,
     pub reply_to_text: Option<String>,
 }
 
@@ -102,6 +108,15 @@ impl Searcher {
         }
     }
 
+    pub fn get_query_words(&self, query: String) -> Vec<String> {
+        query
+            .to_lowercase()
+            .split(|c: char| !c.is_alphanumeric())
+            .filter(|word| word.len() > 3)
+            .map(|word| self.lemmatizer.lock().unwrap().lemmatize(word))
+            .collect()
+    }
+
     pub fn find_threads(&self, query: String) -> anyhow::Result<Vec<ThreadSearchResult>> {
         let query = Parser::new(Lexer::new(&query))?.parse()?;
 
@@ -134,8 +149,8 @@ impl Searcher {
         &self,
         message_id_min: usize,
         message_id_max: usize,
+        query_words: Vec<String>,
     ) -> Vec<MessageResult> {
-        utils::log!("get_message_range({}, {})", message_id_min, message_id_max);
         if message_id_min > message_id_max {
             return Vec::new();
         }
@@ -147,10 +162,47 @@ impl Searcher {
                     .map(|reply_to_id| self.messages[reply_to_id].clone().into());
                 MessageResult {
                     message_id: message.id,
-                    text: message.clone().into(),
+                    text: self.get_highlighted_text(message.text_entities.clone(), &query_words),
                     reply_to_text,
                 }
             })
             .collect()
     }
+
+    fn get_highlighted_text(&self, text: Vec<TextEntity>, query_words: &Vec<String>) -> Vec<Text> {
+        text.into_iter()
+            .map(|text_entity| match text_entity {
+                TextEntity::Lemmatizable(text) => self.highlight_substrings(text, query_words),
+                TextEntity::Illemmatizable(text) => vec![Text::Plain(text)],
+            })
+            .flatten()
+            .collect()
+    }
+    fn highlight_substrings(&self, target: String, queries: &Vec<String>) -> Vec<Text> {
+        let mut result = Vec::new();
+        let mut target = target;
+        while !target.is_empty() {
+            let next_non_alphanumeric = target.find(|c: char| !c.is_alphanumeric());
+            let (word, rest) = match next_non_alphanumeric {
+                Some(index) => {
+                    let (word, rest) = target.split_at(index);
+                    (word.to_string(), rest.to_string())
+                }
+                None => (target.clone(), "".into()),
+            };
+            target = rest;
+            let lemmatized_word = self.lemmatizer.lock().unwrap().lemmatize(&word.to_lowercase());
+            if queries.contains(&lemmatized_word) {
+                result.push(Text::Highlight(word));
+            } else {
+                result.push(Text::Plain(word));
+            }
+            while !target.is_empty() && !target.chars().peekable().peek().unwrap().is_alphanumeric() {
+                result.push(Text::Plain(target.chars().next().unwrap().to_string()));
+                target = target.chars().skip(1).collect();
+            }
+        }
+        result
+    }
 }
+

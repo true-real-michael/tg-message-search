@@ -1,8 +1,9 @@
+use leptos::either::Either;
 use leptos::logging::log;
 use std::sync::{Arc, Mutex};
 use web_sys::MouseEvent;
 
-use crate::analysis::Searcher;
+use crate::analysis::{Searcher, Text};
 use crate::analysis::{MessageResult, ThreadSearchResult};
 use chrono::DateTime;
 use leptos::html;
@@ -14,6 +15,20 @@ pub fn Search(searcher: LocalResource<Option<Arc<Mutex<Searcher>>>>) -> impl Int
     let (selected_thread_id, set_selected_thread_id) = signal(None::<u32>);
     let (offset_before, set_offset_before) = signal(0usize);
     let (offset_after, set_offset_after) = signal(0usize);
+
+    let query_words = Memo::new(move |_| {
+        log!("getting query words...");
+        if let Some(searcher) = searcher.read().as_deref() {
+            searcher
+                .as_ref()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .get_query_words(search_query.get().clone())
+        } else {
+            Vec::new()
+        }
+    });
 
     let result_threads = Memo::new(move |_| {
         log!("Searching for threads...");
@@ -33,21 +48,28 @@ pub fn Search(searcher: LocalResource<Option<Arc<Mutex<Searcher>>>>) -> impl Int
     let message_border_ids = Memo::new(move |_| {
         log!("Retrieving messages...");
         let selected_thread_id = selected_thread_id.get();
+        log!("selected_thread_id: {:?}", selected_thread_id);
         if let Some(selected_thread_id) = selected_thread_id {
             if let Some(searcher) = searcher.read().as_deref() {
+                log!("searcher is Some");
                 set_offset_after.set(0);
+                log!("aha");
                 set_offset_before.set(0);
+                log!("Getting thread messages...");
                 let (min_id, max_id) = searcher
                     .as_ref()
                     .unwrap()
                     .lock()
                     .unwrap()
                     .get_thread_messages(selected_thread_id as usize);
+                log!("min_id: {}, max_id: {}", min_id, max_id);
                 Some((min_id, max_id))
             } else {
+                log!("searcher is None");
                 None
             }
         } else {
+            log!("selected_thread_id is None");
             None
         }
     });
@@ -55,6 +77,9 @@ pub fn Search(searcher: LocalResource<Option<Arc<Mutex<Searcher>>>>) -> impl Int
     let messages = Memo::new(move |_| {
         if let Some((min_id, max_id)) = message_border_ids.get() {
             if let Some(searcher) = searcher.read().as_deref() {
+                log!("Retrieving messages..., min_id: {}, max_id: {}", min_id, max_id);
+                let query_words = query_words.get().clone();
+                log!("cloned query_words: {:?}", query_words);
                 searcher
                     .as_ref()
                     .unwrap()
@@ -63,6 +88,7 @@ pub fn Search(searcher: LocalResource<Option<Arc<Mutex<Searcher>>>>) -> impl Int
                     .get_message_range(
                         min_id.saturating_sub(offset_before.get()),
                         max_id.saturating_add(offset_after.get()),
+                        query_words,
                     )
             } else {
                 Vec::new()
@@ -130,6 +156,21 @@ fn MessageList(
                     let view_messages = messages.clone().into_iter().map(|message| {
                         let reply_text = message.reply_to_text.clone();
                         let message_text = message.text.clone();
+                        let highlighted_text = message_text.into_iter().map(|text| {
+                            let text = text.clone();
+                            match text {
+                                Text::Highlight(text) => {
+                                    Either::Left(view! {
+                                        <span class="bg-yellow-400/50 rounded p-1">{text.clone()}</span>
+                                    })
+                                },
+                                Text::Plain(text) => {
+                                    Either::Right(view! {
+                                        <span>{text.clone()}</span>
+                                    })
+                                }
+                            }
+                        }).collect::<Vec<_>>();
                         view! {
                             <li class="p-2">
                                 <div class="bg-sky-400/25 border-sky-700/40 border rounded p-2">
@@ -138,7 +179,9 @@ fn MessageList(
                                             {reply_text.clone()}
                                         </div>
                                     </Show>
-                                    {message_text.clone()}
+                                    <div>
+                                        {highlighted_text}
+                                    </div>
                                 </div>
                             </li>
                         }
