@@ -89,7 +89,7 @@ pub fn Search(searcher: LocalResource<Option<Arc<Mutex<Searcher>>>>) -> impl Int
 }
 
 #[component]
-pub fn ThreadList(
+fn ThreadList(
     threads: Memo<Vec<ThreadSearchResult>>,
     set_selected_thread_id: WriteSignal<Option<u32>>,
 ) -> impl IntoView {
@@ -115,7 +115,7 @@ pub fn ThreadList(
 }
 
 #[component]
-pub fn MessageList(
+fn MessageList(
     messages: Memo<Vec<MessageResult>>,
     set_offset_before: WriteSignal<usize>,
     set_offset_after: WriteSignal<usize>,
@@ -156,7 +156,7 @@ pub fn MessageList(
 }
 
 #[component]
-pub fn SearchBar(set_search_query: WriteSignal<String>) -> impl IntoView {
+fn SearchBar(set_search_query: WriteSignal<String>) -> impl IntoView {
     let input_element: NodeRef<html::Input> = NodeRef::new();
     view! {
             <form on:submit= move |e| {
@@ -172,7 +172,7 @@ pub fn SearchBar(set_search_query: WriteSignal<String>) -> impl IntoView {
     }
 }
 #[component]
-pub fn Button(on_click: impl FnMut(MouseEvent) + 'static) -> impl IntoView {
+fn Button(on_click: impl FnMut(MouseEvent) + 'static) -> impl IntoView {
     view! {
         <button on:click=on_click class="w-full p-2 bg-sky-400/25 border-sky-700/40 border rounded hover:bg-sky-400/50 transition-colors">
             { "More" }
