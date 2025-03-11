@@ -1,5 +1,6 @@
 use leptos::logging::log;
 use std::sync::{Arc, Mutex};
+use web_sys::MouseEvent;
 
 use crate::analysis::Searcher;
 use crate::analysis::{MessageResult, ThreadSearchResult};
@@ -102,7 +103,7 @@ pub fn ThreadList(
                             <li class="p-2 hover:bg-gray-700 cursor-pointer" data-id={thread.thread_id} on:click=move |_| set_selected_thread_id.set(Some(thread.thread_id))>
                                 <div class="flex justify-between items-center">
                                     <span class="truncate">{thread.title_text.clone()}</span>
-                                    <span class="text-sm ml-2 whitespace-nowrap">{date}</span>
+                                    <span class="text-sm whitespace-nowrap">{date}</span>
                                 </div>
                             </li>
                         }
@@ -119,29 +120,21 @@ pub fn MessageList(
     set_offset_before: WriteSignal<usize>,
     set_offset_after: WriteSignal<usize>,
 ) -> impl IntoView {
-
-
     view! {
         <ul>
-            {move || {
-                messages.with(|messages| {
-                    let btn_before = view! {
-                        <div class="flex justify-between">
-                            <button class="p-2 border
-                                bg-sky-400/25 border-sky-600 rounded"
-                                on:click=move |_| *set_offset_before.write() += 1>
-                                Load more before
-                            </button>
-                        </div>
-                    };
+        {move || {
+            messages.with(|messages| {
+                let btn_before = view! {
+                    <li class="p-2"><Button on_click=move |_| *set_offset_before.write() += 5 /></li>
+                };
                     let view_messages = messages.clone().into_iter().map(|message| {
                         let reply_text = message.reply_to_text.clone();
                         let message_text = message.text.clone();
                         view! {
                             <li class="p-2">
-                                <div class="bg-sky-400/25 border-sky-700/40 border rounded p-2 m-2">
+                                <div class="bg-sky-400/25 border-sky-700/40 border rounded p-2">
                                     <Show when=move || {message.reply_to_text.is_some()}>
-                                        <div class="truncate ml-2 bg-gray-900/40 rounded p-1">
+                                        <div class="truncate bg-gray-900/40 rounded p-1">
                                             {reply_text.clone()}
                                         </div>
                                     </Show>
@@ -152,13 +145,7 @@ pub fn MessageList(
                     }).collect::<Vec<_>>();
 
                     let btn_after = view! {
-                        <div class="flex justify-between">
-                            <button class="p-2 border
-                                bg-sky-400/25 border-sky-600 rounded"
-                                on:click=move |_| *set_offset_after.write() += 1>
-                                Load more after
-                            </button>
-                        </div>
+                        <li class="p-2"><Button on_click=move |_| *set_offset_after.write() += 5 /></li>
                     };
 
                     (btn_before, view_messages, btn_after)
@@ -179,8 +166,16 @@ pub fn SearchBar(set_search_query: WriteSignal<String>) -> impl IntoView {
             }>
                 <div class="mb-6 flex">
                         <input type="text" placeholder="search" class="w-full bg-gray-700 p-2 border border-gray-300 rounded" node_ref=input_element />
-                        <input type="submit" value="Search" class="ml-2 p-2 border bg-sky-400/25 border-sky-600 rounded" />
+                        <input type="submit" value="Search" class="ml-2 p-2 border bg-sky-400/25 border-sky-600 rounded hover:bg-sky-400/50 transition-colors cursor-pointer" />
                 </div>
             </form>
+    }
+}
+#[component]
+pub fn Button(on_click: impl FnMut(MouseEvent) + 'static) -> impl IntoView {
+    view! {
+        <button on:click=on_click class="w-full p-2 bg-sky-400/25 border-sky-700/40 border rounded hover:bg-sky-400/50 transition-colors">
+            { "More" }
+        </button>
     }
 }
