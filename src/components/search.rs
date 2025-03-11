@@ -150,7 +150,13 @@ fn MessageList(
                     <li class="p-2"><Button on_click=move |_| *set_offset_before.write() += 5 /></li>
                 };
                     let view_messages = messages.clone().into_iter().map(|message| {
-                        let reply_text = message.reply_to_text.clone();
+                        let reply_text = message.reply_to_text.clone().map(|text| {
+                            view! {
+                                <div class="truncate bg-gray-900/40 rounded p-1">
+                                    {text}
+                                </div>
+                            }
+                        });
                         let message_text = message.text.clone();
                         let highlighted_text = message_text.into_iter().map(|text| {
                             let text = text.clone();
@@ -170,14 +176,8 @@ fn MessageList(
                         view! {
                             <li class="p-2">
                                 <div class="bg-sky-400/25 border-sky-700/40 border rounded p-2">
-                                    <Show when=move || {message.reply_to_text.is_some()}>
-                                        <div class="truncate bg-gray-900/40 rounded p-1">
-                                            {reply_text.clone()}
-                                        </div>
-                                    </Show>
-                                    <div>
-                                        {highlighted_text}
-                                    </div>
+                                    {reply_text.clone()}
+                                    {highlighted_text}
                                 </div>
                             </li>
                         }
@@ -214,7 +214,7 @@ fn SearchBar(set_search_query: WriteSignal<String>) -> impl IntoView {
 fn Button(on_click: impl FnMut(MouseEvent) + 'static) -> impl IntoView {
     view! {
         <button on:click=on_click class="w-full p-2 bg-sky-400/25 border-sky-600 border rounded hover:bg-sky-400/50 transition-colors">
-            { "More" }
+            { "Load More" }
         </button>
     }
 }
