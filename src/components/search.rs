@@ -163,7 +163,7 @@ fn MessageList(
                             match text {
                                 Text::Highlight(text) => {
                                     Either::Left(view! {
-                                        <span class="bg-yellow-400/50 rounded p-0.5">{text.clone()}</span>
+                                        <span class="bg-teal-400/50 rounded p-0.5">{text.clone()}</span>
                                     })
                                 },
                                 Text::Plain(text) => {
