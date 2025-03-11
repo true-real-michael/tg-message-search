@@ -191,13 +191,18 @@ impl Searcher {
                 None => (target.clone(), "".into()),
             };
             target = rest;
-            let lemmatized_word = self.lemmatizer.lock().unwrap().lemmatize(&word.to_lowercase());
+            let lemmatized_word = self
+                .lemmatizer
+                .lock()
+                .unwrap()
+                .lemmatize(&word.to_lowercase());
             if queries.contains(&lemmatized_word) {
                 result.push(Text::Highlight(word));
             } else {
                 result.push(Text::Plain(word));
             }
-            while !target.is_empty() && !target.chars().peekable().peek().unwrap().is_alphanumeric() {
+            while !target.is_empty() && !target.chars().peekable().peek().unwrap().is_alphanumeric()
+            {
                 result.push(Text::Plain(target.chars().next().unwrap().to_string()));
                 target = target.chars().skip(1).collect();
             }
@@ -205,4 +210,3 @@ impl Searcher {
         result
     }
 }
-

@@ -3,8 +3,8 @@ use leptos::logging::log;
 use std::sync::{Arc, Mutex};
 use web_sys::MouseEvent;
 
-use crate::analysis::{Searcher, Text};
 use crate::analysis::{MessageResult, ThreadSearchResult};
+use crate::analysis::{Searcher, Text};
 use chrono::DateTime;
 use leptos::html;
 use leptos::prelude::*;
@@ -48,28 +48,21 @@ pub fn Search(searcher: LocalResource<Option<Arc<Mutex<Searcher>>>>) -> impl Int
     let message_border_ids = Memo::new(move |_| {
         log!("Retrieving messages...");
         let selected_thread_id = selected_thread_id.get();
-        log!("selected_thread_id: {:?}", selected_thread_id);
         if let Some(selected_thread_id) = selected_thread_id {
             if let Some(searcher) = searcher.read().as_deref() {
-                log!("searcher is Some");
                 set_offset_after.set(0);
-                log!("aha");
                 set_offset_before.set(0);
-                log!("Getting thread messages...");
                 let (min_id, max_id) = searcher
                     .as_ref()
                     .unwrap()
                     .lock()
                     .unwrap()
                     .get_thread_messages(selected_thread_id as usize);
-                log!("min_id: {}, max_id: {}", min_id, max_id);
                 Some((min_id, max_id))
             } else {
-                log!("searcher is None");
                 None
             }
         } else {
-            log!("selected_thread_id is None");
             None
         }
     });
@@ -77,9 +70,12 @@ pub fn Search(searcher: LocalResource<Option<Arc<Mutex<Searcher>>>>) -> impl Int
     let messages = Memo::new(move |_| {
         if let Some((min_id, max_id)) = message_border_ids.get() {
             if let Some(searcher) = searcher.read().as_deref() {
-                log!("Retrieving messages..., min_id: {}, max_id: {}", min_id, max_id);
+                log!(
+                    "Retrieving messages..., min_id: {}, max_id: {}",
+                    min_id,
+                    max_id
+                );
                 let query_words = query_words.get().clone();
-                log!("cloned query_words: {:?}", query_words);
                 searcher
                     .as_ref()
                     .unwrap()
