@@ -20,19 +20,17 @@ UI looks like this:
 
 ## Building
 
-1. [Install wasm-pack](https://rustwasm.github.io/wasm-pack/installer)
-2. [Install Node](https://nodejs.org/en)
-3. Download the `lemmatization-ru.tsv.gz` file from releases and place it under the `/data` directory. Alternatively, download the morphological dictionary from [OpenCorpora's website](https://opencorpora.org/?page=downloads), place it under `/data`, run the `scripts/preprocess_opcorpora.py` script, and gzip the result
-4. Build the wasm package
+1. Install Trunk, add wasm32 target
 ```sh
-wasm-pack build
+cargo install trunk
+rustup target add wasm32-unknown-unknown
 ```
-5. Run the website
+2. Download the `lemmatization-ru.tsv.gz` file from releases and place it under the `/data` directory. Alternatively, download the morphological dictionary from [OpenCorpora's website](https://opencorpora.org/?page=downloads), place it under `/data`, run the `scripts/preprocess_opcorpora.py` script, and gzip the result
+3. Run the project
 ```sh
-cd www
-npm install
-npm run start
+trunk serve --port 3000 --release
 ```
+4. The project will be available at localhost:3000/wasm-chat-searcher
 
 
 ## License
