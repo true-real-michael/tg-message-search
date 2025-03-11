@@ -147,7 +147,7 @@ fn MessageList(
         {move || {
             messages.with(|messages| {
                 let btn_before = view! {
-                    <li class="p-2"><Button on_click=move |_| *set_offset_before.write() += 5 /></li>
+                    <li class="mb-3"><Button on_click=move |_| *set_offset_before.write() += 5 /></li>
                 };
                     let view_messages = messages.clone().into_iter().map(|message| {
                         let reply_text = message.reply_to_text.clone().map(|text| {
@@ -163,7 +163,7 @@ fn MessageList(
                             match text {
                                 Text::Highlight(text) => {
                                     Either::Left(view! {
-                                        <span class="bg-yellow-400/50 rounded p-1">{text.clone()}</span>
+                                        <span class="bg-yellow-400/50 rounded p-0.5">{text.clone()}</span>
                                     })
                                 },
                                 Text::Plain(text) => {
@@ -174,17 +174,15 @@ fn MessageList(
                             }
                         }).collect::<Vec<_>>();
                         view! {
-                            <li class="p-2">
-                                <div class="bg-sky-400/25 border-sky-700/40 border rounded p-2">
-                                    {reply_text.clone()}
-                                    {highlighted_text}
-                                </div>
+                            <li class="p-2 mb-3 bg-sky-400/25 border-sky-700/40 border rounded">
+                                {reply_text.clone()}
+                                {highlighted_text}
                             </li>
                         }
                     }).collect::<Vec<_>>();
 
                     let btn_after = view! {
-                        <li class="p-2"><Button on_click=move |_| *set_offset_after.write() += 5 /></li>
+                        <li><Button on_click=move |_| *set_offset_after.write() += 5 /></li>
                     };
 
                     (btn_before, view_messages, btn_after)
@@ -204,8 +202,8 @@ fn SearchBar(set_search_query: WriteSignal<String>) -> impl IntoView {
                 set_search_query.set(value);
             }>
                 <div class="mb-6 flex">
-                        <input type="text" placeholder="search" class="w-full bg-gray-700 p-2 border border-gray-300 rounded" node_ref=input_element />
-                        <input type="submit" value="Search" class="ml-2 p-2 border bg-sky-400/25 border-sky-600 rounded hover:bg-sky-400/50 transition-colors cursor-pointer" />
+                    <input type="text" placeholder="search" class="w-full bg-gray-700 p-2 border border-gray-300 rounded" node_ref=input_element />
+                    <input type="submit" value="Search" class="ml-2 p-2 border bg-sky-400/25 border-sky-600 rounded hover:bg-sky-400/50 transition-colors cursor-pointer" />
                 </div>
             </form>
     }
@@ -214,7 +212,7 @@ fn SearchBar(set_search_query: WriteSignal<String>) -> impl IntoView {
 fn Button(on_click: impl FnMut(MouseEvent) + 'static) -> impl IntoView {
     view! {
         <button on:click=on_click class="w-full p-2 bg-sky-400/25 border-sky-600 border rounded hover:bg-sky-400/50 transition-colors">
-            { "Load More" }
+            Load More
         </button>
     }
 }
