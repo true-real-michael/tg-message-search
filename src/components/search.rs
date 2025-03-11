@@ -11,6 +11,8 @@ use leptos::prelude::*;
 pub fn Search(searcher: LocalResource<Option<Arc<Mutex<Searcher>>>>) -> impl IntoView {
     let (search_query, set_search_query) = signal(String::new());
     let (selected_thread_id, set_selected_thread_id) = signal(None::<u32>);
+    let (offset_before, set_offset_before) = signal(0usize);
+    let (offset_after, set_offset_after) = signal(0usize);
 
     let result_threads = Memo::new(move |_| {
         log!("Searching for threads...");
@@ -27,17 +29,40 @@ pub fn Search(searcher: LocalResource<Option<Arc<Mutex<Searcher>>>>) -> impl Int
         }
     });
 
-    let result_messages = Memo::new(move |_| {
+    let message_border_ids = Memo::new(move |_| {
         log!("Retrieving messages...");
         let selected_thread_id = selected_thread_id.get();
         if let Some(selected_thread_id) = selected_thread_id {
+            if let Some(searcher) = searcher.read().as_deref() {
+                set_offset_after.set(0);
+                set_offset_before.set(0);
+                let (min_id, max_id) = searcher
+                    .as_ref()
+                    .unwrap()
+                    .lock()
+                    .unwrap()
+                    .get_thread_messages(selected_thread_id as usize);
+                Some((min_id, max_id))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    });
+
+    let messages = Memo::new(move |_| {
+        if let Some((min_id, max_id)) = message_border_ids.get() {
             if let Some(searcher) = searcher.read().as_deref() {
                 searcher
                     .as_ref()
                     .unwrap()
                     .lock()
                     .unwrap()
-                    .get_thread_messages(selected_thread_id as usize)
+                    .get_message_range(
+                        min_id.saturating_sub(offset_before.get()),
+                        max_id.saturating_add(offset_after.get()),
+                    )
             } else {
                 Vec::new()
             }
@@ -56,7 +81,7 @@ pub fn Search(searcher: LocalResource<Option<Arc<Mutex<Searcher>>>>) -> impl Int
                 />
             </div>
             <div class="overflow-y-auto">
-                <MessageList messages=result_messages />
+                <MessageList messages=messages set_offset_before=set_offset_before set_offset_after=set_offset_after />
             </div>
         </div>
     }
@@ -89,12 +114,27 @@ pub fn ThreadList(
 }
 
 #[component]
-pub fn MessageList(messages: Memo<Vec<MessageResult>>) -> impl IntoView {
+pub fn MessageList(
+    messages: Memo<Vec<MessageResult>>,
+    set_offset_before: WriteSignal<usize>,
+    set_offset_after: WriteSignal<usize>,
+) -> impl IntoView {
+
+
     view! {
         <ul>
             {move || {
                 messages.with(|messages| {
-                    messages.clone().into_iter().map(|message| {
+                    let btn_before = view! {
+                        <div class="flex justify-between">
+                            <button class="p-2 border
+                                bg-sky-400/25 border-sky-600 rounded"
+                                on:click=move |_| *set_offset_before.write() += 1>
+                                Load more before
+                            </button>
+                        </div>
+                    };
+                    let view_messages = messages.clone().into_iter().map(|message| {
                         let reply_text = message.reply_to_text.clone();
                         let message_text = message.text.clone();
                         view! {
@@ -109,7 +149,19 @@ pub fn MessageList(messages: Memo<Vec<MessageResult>>) -> impl IntoView {
                                 </div>
                             </li>
                         }
-                    }).collect::<Vec<_>>()
+                    }).collect::<Vec<_>>();
+
+                    let btn_after = view! {
+                        <div class="flex justify-between">
+                            <button class="p-2 border
+                                bg-sky-400/25 border-sky-600 rounded"
+                                on:click=move |_| *set_offset_after.write() += 1>
+                                Load more after
+                            </button>
+                        </div>
+                    };
+
+                    (btn_before, view_messages, btn_after)
                 })
             }}
         </ul>

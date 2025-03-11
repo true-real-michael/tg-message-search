@@ -123,11 +123,11 @@ impl Searcher {
         Ok(result)
     }
 
-    pub fn get_thread_messages(&self, thread_id: usize) -> Vec<MessageResult> {
+    pub fn get_thread_messages(&self, thread_id: usize) -> (usize, usize) {
         utils::log!("get_thread_messages({})", thread_id);
         let min_id = self.threads[thread_id].first().copied().unwrap();
         let max_id = self.threads[thread_id].last().copied().unwrap();
-        self.get_message_range(min_id, max_id)
+        (min_id, max_id)
     }
 
     pub fn get_message_range(
