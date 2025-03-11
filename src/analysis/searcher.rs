@@ -169,16 +169,15 @@ impl Searcher {
             .collect()
     }
 
-    fn get_highlighted_text(&self, text: Vec<TextEntity>, query_words: &Vec<String>) -> Vec<Text> {
+    fn get_highlighted_text(&self, text: Vec<TextEntity>, query_words: &[String]) -> Vec<Text> {
         text.into_iter()
-            .map(|text_entity| match text_entity {
+            .flat_map(|text_entity| match text_entity {
                 TextEntity::Lemmatizable(text) => self.highlight_substrings(text, query_words),
                 TextEntity::Illemmatizable(text) => vec![Text::Plain(text)],
             })
-            .flatten()
             .collect()
     }
-    fn highlight_substrings(&self, target: String, queries: &Vec<String>) -> Vec<Text> {
+    fn highlight_substrings(&self, target: String, queries: &[String]) -> Vec<Text> {
         let mut result = Vec::new();
         let mut target = target;
         while !target.is_empty() {
