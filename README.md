@@ -34,6 +34,8 @@ trunk serve --port 3000 --release
 ```
 4. The project will be available at localhost:3000/tg-message-search
 
+If you want to use this project for a different language, you should replace the lemmatization dictionary with the one for your language.
+If you want more complex lemmatization/stemming/embedding logic, you should take a look at the `Lemmatizer` struct in `src/analysis/lemmatizer.rs` and modify it accordingly.
 
 ## Why?
 
