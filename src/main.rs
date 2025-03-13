@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use wasm_chat_searcher::App;
+use tg_message_search::App;
 
 fn main() {
     // set up logging

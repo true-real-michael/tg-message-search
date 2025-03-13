@@ -1,5 +1,7 @@
-# Chat Searcher
+# Telegram Message Search
 ## Usage
+
+The app is currenty hosted here: [https://true-real-michael.github.io/tg-message-search](https://true-real-michael.github.io/tg-message-search)
 
 1. [Export](https://telegram.org/blog/export-and-more) a telegram **chat** in a JSON format
 2. Upload the `result.json` file (the website runs in the browser and no data is saved)
@@ -30,7 +32,7 @@ rustup target add wasm32-unknown-unknown
 ```sh
 trunk serve --port 3000 --release
 ```
-4. The project will be available at localhost:3000/wasm-chat-searcher
+4. The project will be available at localhost:3000/tg-message-search
 
 
 ## License
