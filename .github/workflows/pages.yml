@@ -53,8 +53,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cargo install trunk || true \
-          && rustup target add wasm32-unknown-unknown
+          wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.4/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
+          rustup target add wasm32-unknown-unknown
 
       - name: Build with Trunk
         run: ./trunk build --release --public-url ${{ github.event.repository.name }}
