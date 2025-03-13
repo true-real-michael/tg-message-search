@@ -28,7 +28,7 @@ pub fn App() -> impl IntoView {
 
         <Router>
             <Routes fallback=|| view! { NotFound }>
-                <Route path=path!("/wasm-chat-searcher") view=AppPage />
+                <Route path=path!("/tg-message-search") view=AppPage />
             </Routes>
         </Router>
     }
