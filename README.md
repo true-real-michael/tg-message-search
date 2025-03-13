@@ -35,6 +35,44 @@ trunk serve --port 3000 --release
 4. The project will be available at localhost:3000/tg-message-search
 
 
+## Why?
+
+- The Telegram native message search was not convenient for me, especially:
+  - When I wanted to search for synonyms.
+  - When I wanted to search for combinations of words.
+  - When the info is scattered across multiple messages, which form a reply chain.
+  - When there are many results, it is inconvenient to scroll through them in a tiny search results bar.
+
+## Design choices
+
+- Why WASM?
+  - To maintain privacy by keeping all data client-side.
+  - To avoid round-trips for queries and data upload.
+  - I didn't want to spend money on a backend.
+  - Because it is a cool technology and I wanted to try it out.
+- Why no embedded db?
+  - Because I wanted bespoke lemmatization logic.
+  - I also wanted to keep the app lightweight and minimalistic.
+- Why Leptos?
+  - No reason at all, just wanted to try it out.
+  - This project used to use `wasm-bindgen` + vanilla JS + HTML, but I tried doing reactive UI with Leptos and it worked well.
+  - Language unification was a nice bonus.
+- Why dictionary-based lemmatization?
+  - I initially considered using word embeddings, but I could not find a suitable model for Russian.
+  - Dictionary gets the work done and does not take too much space (arguably): ≈9MB compressed, ≈300MB uncompressed.
+
+
+## What I learned
+
+- How to use WASM in a web application.
+- How to use Leptos for building a reactive UI.
+- Refreshed memories on parsing.
+
+## Potential improvements
+
+- Web Workers for background initialization. Currently it is blocking the main thread.
+- Revise the code because it contains a lot of clones and unwraps.
+
 ## License
 
 All the code is licensed under MIT License
