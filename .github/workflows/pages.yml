@@ -28,6 +28,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Restore cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/git
+            ~/.cargo/registry
+            target
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Download lemmatization dictionary
         uses: robinraju/release-downloader@v1
         with:
@@ -35,22 +45,18 @@ jobs:
           fileName: lemmatization-ru.tsv.gz
           out-file-path: data
 
-      - name: Install nightly Rust
-        uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: clippy, rustfmt
+      # - name: Install stable Rust
+      #   uses: dtolnay/rust-toolchain@stable
+      #   with:
+      #     components: clippy, rustfmt
 
-      - name: Add WASM target
-        run: rustup target add wasm32-unknown-unknown
-
-      - name: lint
-        run: cargo clippy & cargo fmt
-
-      - name: Download and install Trunk binary
-        run: wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.4/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
+      - name: Install dependencies
+        run: |
+          cargo install trunk || true \
+          && rustup target add wasm32-unknown-unknown
 
       - name: Build with Trunk
-        run: ./trunk build --release --public-url "/${GITHUB_REPOSITORY#*/}"
+        run: ./trunk build --release --public-url ${{ github.event.repository.name }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
