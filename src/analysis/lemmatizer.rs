@@ -1,10 +1,13 @@
 use flate2::read::GzDecoder;
+use rayon::prelude::*;
 use std::collections::HashMap;
 use std::io::prelude::Read;
+use crate::analysis::utils;
+
 
 const DICTIONARY_RAW: &[u8] = include_bytes!("../../data/lemmatization-ru.tsv.gz");
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Lemmatizer {
     dict: HashMap<&'static str, &'static str>,
 }
@@ -17,16 +20,17 @@ impl Lemmatizer {
 
         let data = Box::leak(data.into_boxed_str());
 
+        let time_start = chrono::Utc::now();
         let dict: HashMap<&str, &str> = data
-            .split('\n')
+            .par_split('\n')
             .filter(|line| !line.is_empty())
             .flat_map(|line| {
                 let mut parts = line.split('\t');
                 let lemma = parts.next().unwrap();
-                parts.map(move |word| (word, lemma))
+                parts.map(move |word| (word, lemma)).par_bridge()
             })
             .collect();
-
+        utils::log!("Lemmatizer loaded in {:?}", chrono::Utc::now() - time_start);
         Self { dict }
     }
 

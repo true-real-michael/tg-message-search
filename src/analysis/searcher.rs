@@ -6,6 +6,7 @@ use crate::analysis::thread_dsu::ThreadDSU;
 use crate::analysis::utils;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
+use rayon::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Text {
@@ -52,29 +53,54 @@ impl Searcher {
 
         let threads = thread_dsu.get_threads();
 
-        let mut thread_index = HashMap::new();
-        for (thread_id, message_ids) in threads.iter().enumerate() {
-            let mut used_words = HashSet::new();
-            for message_id in message_ids {
-                for text_entity in &messages[*message_id].text_entities {
-                    if let TextEntity::Lemmatizable(text) = text_entity {
-                        text.to_lowercase()
-                            .split(|c: char| !c.is_alphanumeric())
-                            .filter(|word| word.len() > 3)
-                            .map(|word| lemmatizer.lock().unwrap().lemmatize(word))
-                            .for_each(|word| {
-                                if !used_words.contains(&word) {
-                                    thread_index
-                                        .entry(word.clone())
-                                        .or_insert_with(Vec::new)
-                                        .push(thread_id);
-                                    used_words.insert(word);
+        let time_start = chrono::Utc::now();
+
+        let thread_index = {
+            let lemmatizer = lemmatizer.lock().unwrap();
+            threads
+                .par_iter()
+                .enumerate()
+                .fold(
+                    || (0, HashSet::new()),
+                    |(_, mut acc), (thread_id1, message_ids)| {
+                        for message_id in message_ids {
+                            for text_entity in &messages[*message_id].text_entities {
+                                if let TextEntity::Lemmatizable(text) = text_entity {
+                                    text.to_lowercase()
+                                        .split(|c: char| !c.is_alphanumeric())
+                                        .filter(|word| word.len() > 3)
+                                        .for_each(|word| {
+                                            let lemma = lemmatizer.lemmatize(word);
+                                            acc.insert(lemma);
+                                        });
                                 }
-                            });
-                    }
-                }
-            }
-        }
+                            }
+                        }
+                        (thread_id1, acc)
+                    },
+                )
+                .fold(
+                    || HashMap::new(),
+                    |mut acc, (thread_id, words)| {
+                        for word in words {
+                            acc.entry(word).or_insert_with(Vec::new).push(thread_id);
+                        }
+                        acc
+                    },
+                )
+                .reduce(
+                    || HashMap::new(),
+                    |mut acc1, acc2| {
+                        for (word, thread_ids) in acc2 {
+                            acc1.entry(word).or_insert_with(Vec::new).extend(thread_ids);
+                        }
+                        acc1
+                    },
+                )
+        };
+
+        utils::log!("Indexing took {:?}", chrono::Utc::now() - time_start);
+
         Ok(Self {
             messages,
             threads,
