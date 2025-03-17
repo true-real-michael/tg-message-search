@@ -1,9 +1,8 @@
+use crate::analysis::utils;
 use flate2::read::GzDecoder;
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::io::prelude::Read;
-use crate::analysis::utils;
-
 
 const DICTIONARY_RAW: &[u8] = include_bytes!("../../data/lemmatization-ru.tsv.gz");
 

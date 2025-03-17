@@ -82,6 +82,9 @@ impl Searcher {
                 .collect()
         };
 
+        utils::log!("Indexing took {:?}", chrono::Utc::now() - time_start);
+        let time_start = chrono::Utc::now();
+
         let mut thread_index = HashMap::new();
         for (thread_id, lemmas) in thread_id_lemmas.into_iter().enumerate() {
             for lemma in lemmas {
@@ -92,35 +95,10 @@ impl Searcher {
             }
         }
 
-        // let thread_index = {
-        //     let mut thread_index = HashMap::new();
-        //     let lemmatizer = lemmatizer.lock().unwrap();
-        //     for (thread_id, message_ids) in threads.iter().enumerate() {
-        //         let mut used_words = HashSet::new();
-        //         for message_id in message_ids {
-        //             for text_entity in &messages[*message_id].text_entities {
-        //                 if let TextEntity::Lemmatizable(text) = text_entity {
-        //                     text.to_lowercase()
-        //                         .split(|c: char| !c.is_alphanumeric())
-        //                         .filter(|word| word.len() > 3)
-        //                         .map(|word| lemmatizer.lemmatize(word))
-        //                         .for_each(|word| {
-        //                             if !used_words.contains(&word) {
-        //                                 thread_index
-        //                                     .entry(word.clone())
-        //                                     .or_insert_with(Vec::new)
-        //                                     .push(thread_id);
-        //                                 used_words.insert(word);
-        //                             }
-        //                         });
-        //                 }
-        //             }
-        //         }
-        //     }
-        //     thread_index
-        // };
-
-        utils::log!("Indexing took {:?}", chrono::Utc::now() - time_start);
+        utils::log!(
+            "Creating HashMap took {:?}",
+            chrono::Utc::now() - time_start
+        );
 
         Ok(Self {
             messages,
