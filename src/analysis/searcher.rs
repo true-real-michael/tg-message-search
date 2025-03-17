@@ -174,7 +174,7 @@ impl Searcher {
         &self,
         message_id_min: usize,
         message_id_max: usize,
-        query_words: Vec<String>,
+        query_words: &[&str],
     ) -> Vec<MessageResult> {
         if message_id_min > message_id_max {
             return Vec::new();
@@ -187,14 +187,14 @@ impl Searcher {
                     .map(|reply_to_id| self.messages[reply_to_id].clone().into());
                 MessageResult {
                     message_id: message.id,
-                    text: self.get_highlighted_text(message.text_entities.clone(), &query_words),
+                    text: self.get_highlighted_text(message.text_entities.clone(), query_words),
                     reply_to_text,
                 }
             })
             .collect()
     }
 
-    fn get_highlighted_text(&self, text: Vec<TextEntity>, query_words: &[String]) -> Vec<Text> {
+    fn get_highlighted_text(&self, text: Vec<TextEntity>, query_words: &[&str]) -> Vec<Text> {
         text.into_iter()
             .flat_map(|text_entity| match text_entity {
                 TextEntity::Lemmatizable(text) => self.highlight_substrings(text, query_words),
@@ -202,9 +202,10 @@ impl Searcher {
             })
             .collect()
     }
-    fn highlight_substrings(&self, target: String, queries: &[String]) -> Vec<Text> {
+    fn highlight_substrings(&self, target: String, queries: &[&str]) -> Vec<Text> {
         let mut result = Vec::new();
         let mut target = target;
+        let lemmatizer = self.lemmatizer.lock().unwrap();
         while !target.is_empty() {
             let next_non_alphanumeric = target.find(|c: char| !c.is_alphanumeric());
             let (word, rest) = match next_non_alphanumeric {
@@ -215,12 +216,8 @@ impl Searcher {
                 None => (target.clone(), "".into()),
             };
             target = rest;
-            let lemmatized_word = self
-                .lemmatizer
-                .lock()
-                .unwrap()
-                .lemmatize(&word.to_lowercase())
-                .to_string();
+            let lowercase = word.to_lowercase();
+            let lemmatized_word = lemmatizer.lemmatize(&lowercase);
             if queries.contains(&lemmatized_word) {
                 result.push(Text::Highlight(word));
             } else {

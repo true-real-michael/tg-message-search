@@ -75,7 +75,11 @@ pub fn Search(searcher: LocalResource<Option<Arc<Mutex<Searcher>>>>) -> impl Int
                     min_id,
                     max_id
                 );
-                let query_words = query_words.get().clone();
+                let query_words = query_words.get();
+                let query_words = query_words
+                    .iter()
+                    .map(|word| word.as_str())
+                    .collect::<Vec<_>>();
                 searcher
                     .as_ref()
                     .unwrap()
@@ -84,7 +88,7 @@ pub fn Search(searcher: LocalResource<Option<Arc<Mutex<Searcher>>>>) -> impl Int
                     .get_message_range(
                         min_id.saturating_sub(offset_before.get()),
                         max_id.saturating_add(offset_after.get()),
-                        query_words,
+                        &query_words,
                     )
             } else {
                 Vec::new()
