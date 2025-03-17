@@ -4,7 +4,6 @@ use crate::analysis::merge::{MergeAnd, MergeOr};
 use crate::analysis::query::{Lexer, Parser, SearchQuery};
 use crate::analysis::thread_dsu::ThreadDSU;
 use crate::analysis::utils;
-use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
