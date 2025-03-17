@@ -67,7 +67,7 @@ impl Searcher {
                             if let TextEntity::Lemmatizable(text) = text_entity {
                                 for word in text.split(|c: char| !c.is_alphanumeric()) {
                                     if word.len() > 3 {
-                                        let lemma = lemmatizer.lemmatize(word);
+                                        let lemma = lemmatizer.lemmatize(word).to_string();
                                         if !used_words.contains(&lemma) {
                                             used_words.insert(lemma.clone());
                                             lemmas.push(lemma);
@@ -111,7 +111,7 @@ impl Searcher {
     fn find_threads_by_word(&self, word: String) -> Vec<usize> {
         utils::log!("find_threads_by_word({})", word);
         let word = word.to_lowercase();
-        let word = self.lemmatizer.lock().unwrap().lemmatize(&word);
+        let word = self.lemmatizer.lock().unwrap().lemmatize(&word).to_string();
         self.thread_index.get(&word).cloned().unwrap_or_default()
     }
 
@@ -138,7 +138,7 @@ impl Searcher {
             .to_lowercase()
             .split(|c: char| !c.is_alphanumeric())
             .filter(|word| word.len() > 3)
-            .map(|word| self.lemmatizer.lock().unwrap().lemmatize(word))
+            .map(|word| self.lemmatizer.lock().unwrap().lemmatize(word).to_string())
             .collect()
     }
 
@@ -219,7 +219,8 @@ impl Searcher {
                 .lemmatizer
                 .lock()
                 .unwrap()
-                .lemmatize(&word.to_lowercase());
+                .lemmatize(&word.to_lowercase())
+                .to_string();
             if queries.contains(&lemmatized_word) {
                 result.push(Text::Highlight(word));
             } else {

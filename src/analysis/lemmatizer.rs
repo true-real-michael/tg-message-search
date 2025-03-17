@@ -33,7 +33,7 @@ impl Lemmatizer {
         Self { dict }
     }
 
-    pub fn lemmatize(&self, word: &str) -> String {
-        self.dict.get(word).unwrap_or(&word).to_string()
+    pub fn lemmatize<'a>(&'a self, word: &'a str) -> &'a str {
+        self.dict.get(word).unwrap_or(&word)
     }
 }
