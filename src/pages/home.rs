@@ -10,11 +10,11 @@ use std::sync::{Arc, Mutex};
 #[component]
 pub fn Home() -> impl IntoView {
     let (messages_json, set_messages_json) = signal(None::<String>);
-    let lemmatizer = Arc::new(Mutex::new(Lemmatizer::new()));
+    let lemmatizer = Box::leak(Box::new(Lemmatizer::new()));
+    let lemmatizer = &*lemmatizer;
 
     let searcher = LocalResource::new(move || {
         let messages_json = messages_json.get().clone();
-        let lemmatizer = lemmatizer.clone();
         async move {
             log!("Initializing searcher...");
             Some(Arc::new(Mutex::new(

@@ -6,7 +6,6 @@ use crate::analysis::thread_dsu::ThreadDSU;
 use crate::analysis::utils;
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Text {
@@ -32,12 +31,12 @@ pub struct MessageResult {
 pub struct Searcher {
     messages: Vec<Message>,
     threads: Vec<Vec<usize>>,
-    lemmatizer: Arc<Mutex<Lemmatizer>>,
+    lemmatizer: &'static Lemmatizer,
     thread_index: HashMap<String, Vec<usize>>,
 }
 
 impl Searcher {
-    pub fn new(lemmatizer: Arc<Mutex<Lemmatizer>>, json: String) -> anyhow::Result<Searcher> {
+    pub fn new(lemmatizer: &'static Lemmatizer, json: String) -> anyhow::Result<Searcher> {
         let mut thread_dsu = ThreadDSU::new();
         let messages = deserialize_messages(json)?;
 
@@ -55,32 +54,29 @@ impl Searcher {
 
         let time_start = chrono::Utc::now();
 
-        let thread_id_lemmas: Vec<Vec<String>> = {
-            let lemmatizer = lemmatizer.lock().unwrap();
-            threads
-                .par_iter()
-                .map(|message_ids| {
-                    let mut used_words = HashSet::new();
-                    let mut lemmas = Vec::new();
-                    for message_id in message_ids {
-                        for text_entity in &messages[*message_id].text_entities {
-                            if let TextEntity::Lemmatizable(text) = text_entity {
-                                for word in text.split(|c: char| !c.is_alphanumeric()) {
-                                    if word.len() > 3 {
-                                        let lemma = lemmatizer.lemmatize(word).to_string();
-                                        if !used_words.contains(&lemma) {
-                                            used_words.insert(lemma.clone());
-                                            lemmas.push(lemma);
-                                        }
+        let thread_id_lemmas: Vec<Vec<String>> = threads
+            .par_iter()
+            .map(|message_ids| {
+                let mut used_words = HashSet::new();
+                let mut lemmas = Vec::new();
+                for message_id in message_ids {
+                    for text_entity in &messages[*message_id].text_entities {
+                        if let TextEntity::Lemmatizable(text) = text_entity {
+                            for word in text.split(|c: char| !c.is_alphanumeric()) {
+                                if word.len() > 3 {
+                                    let lemma = lemmatizer.lemmatize(word).to_string();
+                                    if !used_words.contains(&lemma) {
+                                        used_words.insert(lemma.clone());
+                                        lemmas.push(lemma);
                                     }
                                 }
                             }
                         }
                     }
-                    lemmas
-                })
-                .collect()
-        };
+                }
+                lemmas
+            })
+            .collect();
 
         utils::log!("Indexing took {:?}", chrono::Utc::now() - time_start);
         let time_start = chrono::Utc::now();
@@ -111,7 +107,7 @@ impl Searcher {
     fn find_threads_by_word(&self, word: String) -> Vec<usize> {
         utils::log!("find_threads_by_word({})", word);
         let word = word.to_lowercase();
-        let word = self.lemmatizer.lock().unwrap().lemmatize(&word).to_string();
+        let word = self.lemmatizer.lemmatize(&word).to_string();
         self.thread_index.get(&word).cloned().unwrap_or_default()
     }
 
@@ -138,7 +134,7 @@ impl Searcher {
             .to_lowercase()
             .split(|c: char| !c.is_alphanumeric())
             .filter(|word| word.len() > 3)
-            .map(|word| self.lemmatizer.lock().unwrap().lemmatize(word).to_string())
+            .map(|word| self.lemmatizer.lemmatize(word).to_string())
             .collect()
     }
 
@@ -205,7 +201,7 @@ impl Searcher {
     fn highlight_substrings(&self, target: String, queries: &[&str]) -> Vec<Text> {
         let mut result = Vec::new();
         let mut target = target;
-        let lemmatizer = self.lemmatizer.lock().unwrap();
+        let lemmatizer = self.lemmatizer;
         while !target.is_empty() {
             let next_non_alphanumeric = target.find(|c: char| !c.is_alphanumeric());
             let (word, rest) = match next_non_alphanumeric {
