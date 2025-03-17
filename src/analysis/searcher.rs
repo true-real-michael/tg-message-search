@@ -4,6 +4,7 @@ use crate::analysis::merge::{MergeAnd, MergeOr};
 use crate::analysis::query::{Lexer, Parser, SearchQuery};
 use crate::analysis::thread_dsu::ThreadDSU;
 use crate::analysis::utils;
+use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
@@ -54,33 +55,70 @@ impl Searcher {
 
         let time_start = chrono::Utc::now();
 
-        let thread_index = {
-            let mut thread_index = HashMap::new();
+        let thread_id_lemmas: Vec<Vec<String>> = {
             let lemmatizer = lemmatizer.lock().unwrap();
-            for (thread_id, message_ids) in threads.iter().enumerate() {
-                let mut used_words = HashSet::new();
-                for message_id in message_ids {
-                    for text_entity in &messages[*message_id].text_entities {
-                        if let TextEntity::Lemmatizable(text) = text_entity {
-                            text.to_lowercase()
-                                .split(|c: char| !c.is_alphanumeric())
-                                .filter(|word| word.len() > 3)
-                                .map(|word| lemmatizer.lemmatize(word))
-                                .for_each(|word| {
-                                    if !used_words.contains(&word) {
-                                        thread_index
-                                            .entry(word.clone())
-                                            .or_insert_with(Vec::new)
-                                            .push(thread_id);
-                                        used_words.insert(word);
+            threads
+                .par_iter()
+                .map(|message_ids| {
+                    let mut used_words = HashSet::new();
+                    let mut lemmas = Vec::new();
+                    for message_id in message_ids {
+                        for text_entity in &messages[*message_id].text_entities {
+                            if let TextEntity::Lemmatizable(text) = text_entity {
+                                for word in text.split(|c: char| !c.is_alphanumeric()) {
+                                    if word.len() > 3 {
+                                        let lemma = lemmatizer.lemmatize(word);
+                                        if !used_words.contains(&lemma) {
+                                            used_words.insert(lemma.clone());
+                                            lemmas.push(lemma);
+                                        }
                                     }
-                                });
+                                }
+                            }
                         }
                     }
-                }
-            }
-            thread_index
+                    lemmas
+                })
+                .collect()
         };
+
+        let mut thread_index = HashMap::new();
+        for (thread_id, lemmas) in thread_id_lemmas.into_iter().enumerate() {
+            for lemma in lemmas {
+                thread_index
+                    .entry(lemma)
+                    .or_insert_with(Vec::new)
+                    .push(thread_id);
+            }
+        }
+
+        // let thread_index = {
+        //     let mut thread_index = HashMap::new();
+        //     let lemmatizer = lemmatizer.lock().unwrap();
+        //     for (thread_id, message_ids) in threads.iter().enumerate() {
+        //         let mut used_words = HashSet::new();
+        //         for message_id in message_ids {
+        //             for text_entity in &messages[*message_id].text_entities {
+        //                 if let TextEntity::Lemmatizable(text) = text_entity {
+        //                     text.to_lowercase()
+        //                         .split(|c: char| !c.is_alphanumeric())
+        //                         .filter(|word| word.len() > 3)
+        //                         .map(|word| lemmatizer.lemmatize(word))
+        //                         .for_each(|word| {
+        //                             if !used_words.contains(&word) {
+        //                                 thread_index
+        //                                     .entry(word.clone())
+        //                                     .or_insert_with(Vec::new)
+        //                                     .push(thread_id);
+        //                                 used_words.insert(word);
+        //                             }
+        //                         });
+        //                 }
+        //             }
+        //         }
+        //     }
+        //     thread_index
+        // };
 
         utils::log!("Indexing took {:?}", chrono::Utc::now() - time_start);
 
